@@ -2,6 +2,9 @@ import random
 import re
 import nltk
 import operator
+from textblob import TextBlob
+from pattern.en import parse
+
 from nltk.util import ngrams
 from nltk.corpus import cmudict
 from nltk.probability import LidstoneProbDist
@@ -10,9 +13,9 @@ e = cmudict.entries()
 d = cmudict.dict()
 
 banned_end_words = ['the', 'a', 'an', 'at', 'been', 'in', 'of', 'to', 'by', 'my',
-                    'too', 'not', 'and', 'but', 'or', 'than', 'then', 'no', 'o',
-                    'for', 'so', 'which', 'their', 'on', 'your', 'as', 'has',
-                    'what', 'is', 'nor', 'i']
+					'too', 'not', 'and', 'but', 'or', 'than', 'then', 'no', 'o',
+					'for', 'so', 'which', 'their', 'on', 'your', 'as', 'has',
+					'what', 'is', 'nor', 'i', 'this', 'that']
 
 ## blocks = re.split('\n+', testtext)
 
@@ -120,6 +123,8 @@ def meter(word):
 					m.append('x')
 				elif i == j and i * j == 0:
 					m.append('u')
+				else:
+					m.append('x')
 		elif w0 >= 2 and w1 == 0:
 			for (i, j) in zip(mx[0], mx[1]):
 				if i == 1 and j == 0:
@@ -232,13 +237,25 @@ def last_stressed_vowel(word):
 			vowel_index.append(pron.index(i))
 		else:
 			continue
-	return vowel_index[lsv]
-
+	return vowel_index[lsv], pron[vowel_index[lsv]]
 
 def rhyme_finder(word):
 	rhyming_words = []
+	rhyme_part = rhyming_part(word)
+	lrp = len(rhyme_part) * -1
+	for (x, y) in word_list_u:
+		ps = strip_numbers(y)
+		if ps[lrp:] == rhyme_part and ps[lrp-1:] != pron[lsv-1:]:
+			rhyming_words.append(x)
+		else:
+			pass
+	rw = [i for i in rhyming_words if not i == word]
+	rw2 = [j for j in rw if not j in banned_end_words]
+	return rw2
+
+def rhyming_part(word):
 	if len(d[word]) <= 1:
-		pron = d[word][0]
+			pron = d[word][0]
 	else:
 		p0 = d[word][0]
 		p1 = d[word][1]
@@ -251,51 +268,94 @@ def rhyme_finder(word):
 		else:
 			pron = p0
 	pron = strip_numbers(pron)
-	lsv = last_stressed_vowel(word)
-	rhyme_part = pron[lsv:]
-	lrp = len(rhyme_part) * -1
-	for (x, y) in word_list_u:
-		ps = strip_numbers(y)
-		if ps[lrp:] == rhyme_part and ps[lrp-1:] != pron[lsv-1:]:
-			rhyming_words.append(x)
-		else:
-			pass
-	rw = [i for i in rhyming_words if not i == word]
-	rw2 = [j for j in rw if not j in banned_end_words]
-	return rw2
+	lsv,_ = last_stressed_vowel(word)
+	return pron[lsv:]
 
 def make_safe(raw_word):
-    return re.sub(r'\W+', '', raw_word.lower())
+	return re.sub(r'\W+', '', raw_word.lower())
 
 ## All words must be valid or bad things will happen
 def is_iambic(words):
-    if len(words) == 0:
-        return True
-    words = map(lambda wrd: re.sub(r'\W+', '', wrd), words)
-    m_words_stack = map(meter, words)
-    m_words = [item for sublist in m_words_stack for item in sublist]
-    m_fits = [syl == 'x' or (syl == 'u' and (i%2 == 0)) or (syl == 's' and (i%2 == 1)) for i, syl in enumerate(m_words)]
-    return reduce(lambda x,y: x and y, m_fits)
+	if len(words) == 0:
+		return True
+	words = map(lambda wrd: re.sub(r'\W+', '', wrd), words)
+	m_words_stack = map(meter, words)
+	m_words = [item for sublist in m_words_stack for item in sublist]
+	if len(m_words) == 0:
+		return False
+	m_fits = [syl == 'x' or (syl == 'u' and (i%2 == 0)) or (syl == 's' and (i%2 == 1)) for i, syl in enumerate(m_words)]
+	return reduce(lambda x,y: x and y, m_fits)
 
+class PoemLine:
+	def __init__(self, text, pos, starts=False, ends=False):
+		self.text = text
+		self.pos = pos
+		self.starts = starts
+		self.ends = ends
+
+## Sentence is an array of words, apparently
 def extract_iambic_pentameter(sentence):
-    iambic_runs = []
-    raw_previous_words = []
-    for w in range(len(sentence)):
-        raw_word = sentence[w]
-        safe_word = make_safe(raw_word)
-        if safe_word in d:
-            raw_previous_words.append(raw_word)
-            if is_iambic(map(make_safe, raw_previous_words)):
-                if line_sylcount(map(make_safe, raw_previous_words)) >= 10:
-                    if line_sylcount(map(make_safe, raw_previous_words)) == 10:
-                        iambic_runs.append(" ".join(raw_previous_words))
-                    raw_previous_words = raw_previous_words[1:]
-                    while len(raw_previous_words) > 0:
-                        if is_iambic(map(make_safe, raw_previous_words)):
-                            break
-                        raw_previous_words = raw_previous_words[1:]
-            else:
-                raw_previous_words = []
-        else:
-            raw_previous_words = []
-    return iambic_runs
+	iambic_runs = []
+	run_start_index = 0;
+	run_end_index = 0;
+
+	# [x[1] for x in parse(sentence, chunks=False, tokenize=False).split()[0]]
+	# City of Tshwane; Metropolitan Municipality official website
+
+	## Get just the parts of speech of just the first sentence
+	sentence = " ".join(sentence.strip().split())
+	words = sentence.split();
+	if len(words) < 2:
+		return iambic_runs
+
+	pos = parse(sentence, chunks=False).split()[0]
+	pos = filter(lambda x: re.match('^[\w-]+$', x[1]) is not None, pos)
+	pos = [x[1] for x in pos]
+
+	for w in range(len(words)):
+		raw_word = words[w]
+		safe_word = make_safe(raw_word)
+		run_end_index = w+1;
+
+		if safe_word in d:
+			run_end_index
+			raw_previous_words = words[run_start_index:run_end_index]
+
+			if is_iambic(map(make_safe, raw_previous_words)):
+				if line_sylcount(map(make_safe, raw_previous_words)) >= 10:
+					if line_sylcount(map(make_safe, raw_previous_words)) == 10:
+
+						newrun = PoemLine(" ".join(raw_previous_words), pos[run_start_index:run_end_index], run_start_index==0, run_end_index==len(words))
+						iambic_runs.append(newrun)
+					run_start_index += 1
+					while run_end_index > run_end_index:
+						raw_previous_words = words[run_start_index:run_end_index]
+						if is_iambic(map(make_safe, raw_previous_words)):
+							break
+						run_start_index += 1
+			else:
+				run_start_index = run_end_index
+		else:
+			run_start_index = run_end_index
+	return iambic_runs
+
+## Counts the number of occurrences of each n-gram part of speech
+def pos_counts(sentence, ngram=4):
+	counts = {}
+	sentence = " ".join(sentence.strip().split())
+	words = sentence.split();
+	if len(words) < ngram:
+		return counts
+
+	pos = parse(sentence, chunks=False).split()[0]
+	pos = filter(lambda x: re.match('^[\w-]+$', x[1]) is not None, pos)
+	pos = [x[1] for x in pos]
+
+	for w in range(len(pos)-4):
+		postag = "|".join(pos[w:w+4])
+		if postag in counts:
+			counts[postag] = counts[postag] + 1
+		else:
+			counts[postag] = 1
+
+	return counts

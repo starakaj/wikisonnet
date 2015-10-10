@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Wikisonnet</title>
+    <link rel="stylesheet" href="css/base.css" />
+    <script src="vendor/jquery/dist/jquery.js"></script>
+    <script src="vendor/react/react.js"></script>
+    <script src="vendor/react/JSXTransformer.js"></script>
+    <script src="vendor/marked/lib/marked.js"></script>
+  </head>
+  <body>
+    <div id="content"></div>
+    <script type="text/jsx">
+
+    var data = [];
+
+      var SonnetBox = React.createClass({
+        getInitialState: function() {
+          return {data: []};
+        },
+        requestRandomLine: function() {
+          $.ajax({
+            url: "api/v1/random",
+            success: function(result) {
+                console.log(result[0].line);
+                data.push(result[0].line);
+                this.setState({data:data});
+            }.bind(this)
+          });
+        },
+        render: function() {
+          return (
+            <div className="sonnetBox">
+              <SonnetTitle />
+              <SonnetLineList data={this.state.data}/>
+              <NextLineButton callback/>
+            </div>
+          );
+        }
+      });
+
+      var SonnetTitle = React.createClass({
+        render: function() {
+          return (
+            <h1>Sonnet</h1>
+          );
+        }
+      });
+
+      var SonnetLineList = React.createClass({
+        render: function() {
+          var sonnetLines = this.props.data.map(function (line) {
+            return (
+              <SonnetLine>
+                {line.text}
+              </SonnetLine>
+            );
+          });
+          return (
+            <div className="sonnetLines">
+              {sonnetLines}
+            </div>
+          );
+        }
+      })
+
+      var SonnetLine = React.createClass({
+        render: function() {
+          return (
+            <h2>{this.props.children}</h2>
+          );
+        }
+      });
+
+      var NextLineButton = React.createClass({
+        click: function() {
+          console.log('clicked');
+          requestRandomLine().bind(this.props.target);
+        },
+        render: function() {
+          return (
+            <div onClick={this.click} class="nextLineButton">
+              Next line, please
+            </div>
+          )
+        }
+      })
+
+      React.render(
+        <SonnetBox data={data}/>,
+        document.getElementById('content')
+      );
+    </script>
+  </body>
+</html>
