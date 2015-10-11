@@ -1,6 +1,16 @@
 import psycopg2
 import hashlib
 
+def digest(text):
+    m = hashlib.md5()
+    m.update(text)
+    return m.digest()
+
+def mapdigest(page_url_tuple):
+    plist = list(page_url_tuple)
+    plist = map(lambda x: buffer(digest(x), 0, 16), plist)
+    return tuple(plist)
+
 class DatabaseConnection:
 
     def __init__(self, dbname, user, host, password):
@@ -48,8 +58,8 @@ class DatabaseConnection:
         if not len(cur.fetchall()) > 0 and len(pos) >= 2:
             openpos = "|".join(pos[:2])
             closepos = "|".join(pos[-2:])
-            valueStr = (m.hexdigest(), pageURL, text, lsv, word, starts, ends, openpos, closepos)
-            cur.execute("""INSERT INTO iambic_lines_2 (id, page_url, line, last_stressed_vowel, word, starts, ends, openpos, closepos) VALUES (E%s, %s, %s, %s, %s, %s, %s, %s, %s)""", valueStr)
+            valueStr = (m.hexdigest(), pageURL, pageURL, text, lsv, word, starts, ends, openpos, closepos)
+            cur.execute("""INSERT INTO iambic_lines_2 (id, page_url, page_md5, line, last_stressed_vowel, word, starts, ends, openpos, closepos) VALUES (E%s, %s, (decode(md5(%s), 'hex')), %s, %s, %s, %s, %s, %s, %s)""", valueStr)
             self.conn.commit()
         cur.close()
 
@@ -76,10 +86,53 @@ class DatabaseConnection:
 
         cur.close()
 
-
-    def randomLines(self, num=1):
+    def storeIndexForPage(self, pageTitle, revision, timestamp):
         cur = self.conn.cursor()
-        cur.execute("""SELECT * FROM iambic_lines_2 OFFSET random() * (SELECT count(*) FROM iambic_lines) LIMIT %s ;""", (num,))
+        print("Storing index for page " + pageTitle)
+        valueStr = (pageTitle, pageTitle, revision, timestamp, pageTitle)
+        query = ("""INSERT INTO indexed_pages (md5, link, revision_id, timestamp)"""
+                """ SELECT (decode(md5(%s), 'hex')), %s, %s, %s"""
+                """ WHERE NOT EXISTS (SELECT 1 FROM indexed_pages WHERE (md5 = decode(md5(%s), 'hex')))"""
+                )
+        cur.execute(query, valueStr)
+        self.conn.commit()
+        cur.close()
+
+    def storeLinksForPage(self, pageTitle, linkedPages):
+        cur = self.conn.cursor()
+        for page in linkedPages:
+            query = ("""INSERT INTO links (md5_1, md5_2)"""
+                    """ SELECT decode(md5(%s), 'hex'), decode(md5(%s), 'hex')"""
+                    """ WHERE NOT EXISTS (SELECT 1 FROM links WHERE"""
+                    """ (md5_1 = decode(md5(%s), 'hex') AND md5_2 = decode(md5(%s), 'hex')))"""
+                    )
+            valueStr = (pageTitle, page, pageTitle, page)
+            cur.execute(query, valueStr)
+        self.conn.commit()
+        cur.close()
+
+    def pagesLinkedFromPage(self, pageTitle):
+        cur = self.conn.cursor()
+        query = """SELECT md5_2 FROM links WHERE md5_1 = (decode(md5(%s), 'hex'))"""
+        values = (pageTitle,)
+        cur.execute(query, values)
+        res = cur.fetchall();
+        cur.close()
+        return tuple([x[0] for x in res])
+
+    def randomLines(self, pages=None, num=1, predigested=False):
+        cur = self.conn.cursor()
+        if not pages:
+            query = """SELECT * FROM iambic_lines_2 LIMIT %s"""
+            values = (num,)
+        else:
+            query = ("""SELECT * FROM iambic_lines_2 WHERE"""
+                    """ page_md5 IN %s LIMIT %s;"""
+                    )
+            if not predigested:
+                pages = mapdigest(pages)
+            values = (pages, num)
+        cur.execute(query, values)
         res = cur.fetchall()
         cur.close()
         return res

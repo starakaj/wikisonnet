@@ -4,9 +4,7 @@ import re
 
 def make_canonical(link):
     title = link.title.strip_code()
-    # print title
-    # print type(title)
-    title.replace(" ", "_")
+    title = title.replace(" ", "_")
     return title
 
 class WikiTextExtractor:
@@ -18,6 +16,12 @@ class WikiTextExtractor:
         if None in self.nsmap:
             self.nsmap['default'] = self.nsmap[None]
         self.pages = self.root.findall('default:page', self.nsmap)
+
+    def revisionIDForPage(self, page):
+        return page.find('default:revision', self.nsmap).find('default:id', self.nsmap).text
+
+    def timestampForPage(self, page):
+        return page.find('default:revision', self.nsmap).find('default:timestamp', self.nsmap).text
 
     def textForPage(self, page):
         rawMarkupText = page.find('default:revision', self.nsmap).find('default:text', self.nsmap).text
