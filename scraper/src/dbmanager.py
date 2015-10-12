@@ -120,30 +120,74 @@ class DatabaseConnection:
         cur.close()
         return tuple([x[0] for x in res])
 
-    def randomLines(self, pages=None, num=1, predigested=False):
+    def randomLines(self, pages=None, num=1, predigested=False, starts=False, ends=False, rhyme=None, brandom=False):
         cur = self.conn.cursor()
-        if not pages:
-            query = """SELECT * FROM iambic_lines_2 LIMIT %s"""
-            values = (num,)
-        else:
-            query = ("""SELECT * FROM iambic_lines_2 WHERE"""
-                    """ page_md5 IN %s LIMIT %s;"""
-                    )
+        query = """SELECT * FROM iambic_lines_2"""
+        valueList = [];
+        continuing_where = False
+
+        ### Building WHERE clause ###
+        if starts or ends or rhyme or pages:
+            query = query + """ WHERE"""
+        if starts:
+            if continuing_where:
+                query = query + """ AND"""
+            query = query + """ starts = TRUE"""
+            continuing_where = True
+        if ends:
+            if continuing_where:
+                query = query + """ AND"""
+            query = query + """ ends = TRUE"""
+            continuing_where = True
+        if rhyme:
+            if continuing_where:
+                query = query + """ AND"""
+            query = query + """ last_stressed_vowel = %s"""
+            continuing_where = True
+            valueList.append(rhyme)
+        if pages:
+            if continuing_where:
+                query = query + """ AND"""
+            query = query + """ page_md5 IN %s"""
             if not predigested:
                 pages = mapdigest(pages)
-            values = (pages, num)
+            valueList.append(pages)
+        ### WHERE ###
+
+        ## if you want randomness, then you have to execute the query twice, once to see how many results you're
+        ## going to get
+        if brandom:
+            values = tuple(valueList)
+            cur.execute(query, values)
+            res = cur.fetchall()
+            total = len(res)
+            if total == 0:
+                return res
+            rfrac = (num+10.0) / total
+            if continuing_where:
+                query = query + """ AND"""
+            else:
+                query = query + """ WHERE"""
+            query = query + """ random() < %s"""
+            # query = query + """ OFFSET floor(random()*%s)"""
+            valueList.append(rfrac)
+            # valueList.append(total)
+
+        query = query + """ LIMIT %s;"""
+        valueList.append(num)
+        values = tuple(valueList)
+
         cur.execute(query, values)
         res = cur.fetchall()
         cur.close()
         return res
 
-    def linesRhymingWithLine(self, line, num=1):
+    def randomIndexedPage(self):
         cur = self.conn.cursor()
-        valueStr = (line[2], line[3], line[2], line[3], num)
-        cur.execute("""SELECT * FROM iambic_lines_2 WHERE last_stressed_vowel = %s \
-                    AND word != %s OFFSET random() * (SELECT count(*) FROM iambic_lines_2
-                    WHERE last_stressed_vowel = %s AND word != %s) LIMIT %s""", valueStr)
-        res = cur.fetchall();
+        query = """SELECT link FROM indexed_pages OFFSET floor(random()*(SELECT count(*) FROM indexed_pages)) LIMIT 1;"""
+        cur.execute(query)
+        res = cur.fetchall()
+        cur.close()
         return res
 
     def continuationScoreForLine(self, firstLine, continuationLine):
