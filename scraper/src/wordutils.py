@@ -4,6 +4,7 @@ import nltk
 import operator
 from textblob import TextBlob
 from pattern.en import parse
+from benchmarking import Timer
 
 from nltk.util import ngrams
 from nltk.corpus import cmudict
@@ -287,14 +288,59 @@ def is_iambic(words):
 	return reduce(lambda x,y: x and y, m_fits)
 
 class PoemLine:
-	def __init__(self, text, pos, starts=False, ends=False):
+	def __init__(self, text, pos, options=None):
 		self.text = text
 		self.pos = pos
-		self.starts = starts
-		self.ends = ends
+		self.options = options
+
+def optionsForWords(words, pos, chunks, runStartIndex, runEndIndex):
+	# print(words)
+	# print(pos)
+	# print(runStartIndex)
+	# print(runEndIndex)
+	options = {
+		"starts":runStartIndex==0,
+		"ends":runEndIndex==len(words),
+		"has_verb": (u'VB' in pos[runStartIndex:runEndIndex]),
+		"word_0": words[runStartIndex],
+		"word_1": words[runStartIndex+1],
+		"pos_0": pos[runStartIndex],
+		"pos_1": pos[runStartIndex+1],
+		"chunk_0": chunks[runStartIndex],
+		"chunk_1": chunks[runStartIndex+1],
+		"word_len_m2": make_safe(words[runEndIndex-2]),
+		"word_len_m1": make_safe(words[runEndIndex-1]),
+		"pos_len_m2": pos[runEndIndex-2],
+		"pos_len_m1": pos[runEndIndex-1],
+		"chunk_len_m2": chunks[runEndIndex-2],
+		"chunk_len_m1": chunks[runEndIndex-1]
+	}
+
+	if runStartIndex > 0:
+		options["pos_m1"] = pos[runStartIndex-1]
+		options["chunk_m1"] = chunks[runStartIndex-1]
+		options["word_m1"] = make_safe(words[runStartIndex-1])
+		if runStartIndex > 1:
+			options["pos_m2"] = pos[runStartIndex-2]
+			options["chunk_m2"] = chunks[runStartIndex-2]
+			options["word_m2"] = make_safe(words[runStartIndex-2])
+	if runEndIndex < min(len(pos), len(words))-1:
+		options["pos_len"] = pos[runEndIndex]
+		options["chunk_len"] = chunks[runEndIndex]
+		options["word_len"] = make_safe(words[runEndIndex])
+		if runEndIndex < min(len(pos), len(words))-2:
+			options["pos_len_p1"] = pos[runEndIndex+1]
+			options["chunk_len_p1"] = chunks[runEndIndex+1]
+			options["word_len_p1"] = make_safe(words[runEndIndex+1])
+
+	return options
+
 
 ## Sentence is an array of words, apparently
 def extract_iambic_pentameter(sentence):
+
+	t = Timer()
+
 	iambic_runs = []
 	run_start_index = 0;
 	run_end_index = 0;
@@ -308,9 +354,7 @@ def extract_iambic_pentameter(sentence):
 	if len(words) < 2:
 		return iambic_runs
 
-	pos = parse(sentence, chunks=False).split()[0]
-	pos = filter(lambda x: re.match('^[\w-]+$', x[1]) is not None, pos)
-	pos = [x[1] for x in pos]
+	has_parsed_sentence = False
 
 	for w in range(len(words)):
 		raw_word = words[w]
@@ -318,25 +362,67 @@ def extract_iambic_pentameter(sentence):
 		run_end_index = w+1;
 
 		if safe_word in d:
-			run_end_index
+			t.begin("safety")
 			raw_previous_words = words[run_start_index:run_end_index]
+			safe_words = map(make_safe, raw_previous_words)
+			t.end("safety")
 
-			if is_iambic(map(make_safe, raw_previous_words)):
-				if line_sylcount(map(make_safe, raw_previous_words)) >= 10:
-					if line_sylcount(map(make_safe, raw_previous_words)) == 10:
+			if is_iambic(safe_words):
+				if line_sylcount(safe_words) >= 10:
+					if line_sylcount(safe_words) == 10:
 
-						newrun = PoemLine(" ".join(raw_previous_words), pos[run_start_index:run_end_index], run_start_index==0, run_end_index==len(words))
+						## Optimization: Don't do the expensive sentence parsing until you need to
+						t.begin("parse")
+						if not has_parsed_sentence:
+							t.begin("parse-itself")
+							pos = parse(sentence).split()[0]
+							t.end("parse-itself")
+							pos = filter(lambda x: re.match('^[\w-]+', x[1]) is not None, pos)
+							chnk = [x[2] for x in pos]
+							pos = [x[1] for x in pos]
+							has_parsed_sentence = True
+							if (len(words) != len(pos)):
+								# print("Skipping sentence ''" + sentence + "''")
+								return iambic_runs
+						t.end("parse")
+
+						t.begin("other")
+						hasVerb = u'VB' in pos[run_start_index:run_end_index]
+						leadChunk = None
+						if run_start_index > 0:
+							if chnk[run_start_index] == chnk[run_start_index-1]:
+								leadChunk = chnk[run_start_index]
+						lagChunk = None
+						if run_end_index < len(pos)-1:
+							if chnk[run_end_index] == chnk[run_end_index+1]:
+								lagChunk = chnk[run_end_index]
+						t.end("other")
+
+						t.begin("make-options")
+						options = optionsForWords(words, pos, chnk, run_start_index, run_end_index)
+						t.end("make-options")
+
+						t.begin("append")
+						newrun = PoemLine(" ".join(raw_previous_words), pos[run_start_index:run_end_index], options=options)
 						iambic_runs.append(newrun)
+						t.end("append")
 					run_start_index += 1
+
+					t.begin("advance")
 					while run_end_index > run_end_index:
 						raw_previous_words = words[run_start_index:run_end_index]
 						if is_iambic(map(make_safe, raw_previous_words)):
+							t.end("advance")
 							break
 						run_start_index += 1
+					t.end("advance")
 			else:
 				run_start_index = run_end_index
 		else:
 			run_start_index = run_end_index
+
+	# t.printTime()
+
 	return iambic_runs
 
 ## Counts the number of occurrences of each n-gram part of speech
