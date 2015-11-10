@@ -3,6 +3,7 @@ import dbmanager
 import wikibard
 from  werkzeug.debug import get_current_traceback
 import yaml
+from flask.ext.cors import CORS
 
 try:
     f = open('dbconfig.yml', 'r')
@@ -22,28 +23,28 @@ def random_page():
 
     db = dbmanager.MySQLDatabaseConnection(dbconfig["database"], dbconfig["user"], dbconfig["host"], dbconfig["password"])
     pageID = db.randomIndexedPage()
-    return '<h1>%s</h1>\n' % db.pageTitleForPageID(pageID)
+    return db.pageTitleForPageID(pageID)
 
 # some bits of text for the page.
 header_text = '''
-    <html>\n<head> <title>EB Flask Test</title> </head>\n<body>'''
+    <html>\n<head> <title>Wikisonnets Flask Test</title> </head>\n<body>'''
 instructions = '''
-    <p><em>Hint</em>: This is a RESTful web service! Append a username
-    to the URL (for example: <code>/Thelonious</code>) to say hello to
-    someone specific.</p>\n'''
+    <p><em>Hint</em>: This is a RESTful web service! Try hitting /api/v1/random
+    to get an indexed page, then /api/v1/compose/<page> on that page.</p>\n'''
 home_link = '<p><a href="/">Back</a></p>\n'
 footer_text = '</body>\n</html>'
 
 # EB looks for an 'application' callable by default.
 application = Flask(__name__)
+cors = CORS(application, resources={r"/api/*": {"origins": "*"}})
 
 # add a rule for the index page.
 application.add_url_rule('/', 'index', (lambda: header_text +
     say_hello() + instructions + footer_text))
 
 # add a rule that actually talks to the database
-application.add_url_rule('/random', 'random', (lambda:
-    header_text + random_page() + footer_text))
+application.add_url_rule('/api/v1/random', 'random', (lambda:
+    jsonify(title=random_page())))
 
 # poem writing rule
 def poem_page(wiki):
