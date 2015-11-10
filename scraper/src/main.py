@@ -1,3 +1,6 @@
+import sys
+sys.path.append("../../server")
+
 import dbmanager
 import wikiutils
 import sys

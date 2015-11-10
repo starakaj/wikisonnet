@@ -1,0 +1,349 @@
+Retrieving logs...
+============= i-efd00536 ==============
+-------------------------------------
+/var/log/eb-version-deployment.log
+-------------------------------------
+2015-11-06 13:16:39,206 [INFO] Found the latest version manifest file <Key: elasticbeanstalk-us-west-2-041904351996,resources/environments/e-ppmsbst9uu/_runtime/versions/manifest_1446815594797> from bucket elasticbeanstalk-us-west-2-041904351996 and prefix resources/environments/e-ppmsbst9uu/_runtime/versions/
+2015-11-06 13:16:39,260 [INFO] Downloaded the manifest file to /tmp/version_file_manifest
+2015-11-06 13:16:39,329 [INFO] Downloaded version label app-151106_081305 from s3 key <Key: elasticbeanstalk-us-west-2-041904351996,resources/environments/e-ppmsbst9uu/_runtime/_versions/wikisonnet/app-151106_081305>
+2015-11-06 13:58:59,468 [INFO] Version manifest file name already known. The latest version manifest file key is resources/environments/e-ppmsbst9uu/_runtime/versions/manifest_1446818335768
+2015-11-06 13:58:59,523 [INFO] Downloaded the manifest file to /tmp/version_file_manifest
+2015-11-06 13:58:59,587 [INFO] Downloaded version label app-151106_085849 from s3 key <Key: elasticbeanstalk-us-west-2-041904351996,resources/environments/e-ppmsbst9uu/_runtime/_versions/wikisonnet/app-151106_085849>
+
+
+
+-------------------------------------
+/var/log/httpd/error_log
+-------------------------------------
+[Fri Nov 06 13:16:49.275827 2015] [suexec:notice] [pid 2719] AH01232: suEXEC mechanism enabled (wrapper: /usr/sbin/suexec)
+[Fri Nov 06 13:16:49.285825 2015] [auth_digest:notice] [pid 2719] AH01757: generating secret for digest authentication ...
+[Fri Nov 06 13:16:49.286368 2015] [lbmethod_heartbeat:notice] [pid 2719] AH02282: No slotmem from mod_heartmonitor
+[Fri Nov 06 13:16:49.286398 2015] [:warn] [pid 2719] mod_wsgi: Compiled for Python/2.7.9.
+[Fri Nov 06 13:16:49.286403 2015] [:warn] [pid 2719] mod_wsgi: Runtime using Python/2.7.10.
+[Fri Nov 06 13:16:49.287778 2015] [mpm_prefork:notice] [pid 2719] AH00163: Apache/2.4.16 (Amazon) mod_wsgi/3.5 Python/2.7.10 configured -- resuming normal operations
+[Fri Nov 06 13:16:49.287791 2015] [core:notice] [pid 2719] AH00094: Command line: '/usr/sbin/httpd -D FOREGROUND'
+[Fri Nov 06 13:17:31.505093 2015] [mpm_prefork:notice] [pid 2719] AH00169: caught SIGTERM, shutting down
+[Fri Nov 06 13:17:32.558183 2015] [suexec:notice] [pid 3675] AH01232: suEXEC mechanism enabled (wrapper: /usr/sbin/suexec)
+[Fri Nov 06 13:17:32.568713 2015] [so:warn] [pid 3675] AH01574: module wsgi_module is already loaded, skipping
+[Fri Nov 06 13:17:32.570467 2015] [auth_digest:notice] [pid 3675] AH01757: generating secret for digest authentication ...
+[Fri Nov 06 13:17:32.571151 2015] [lbmethod_heartbeat:notice] [pid 3675] AH02282: No slotmem from mod_heartmonitor
+[Fri Nov 06 13:17:32.571189 2015] [:warn] [pid 3675] mod_wsgi: Compiled for Python/2.7.9.
+[Fri Nov 06 13:17:32.571195 2015] [:warn] [pid 3675] mod_wsgi: Runtime using Python/2.7.10.
+[Fri Nov 06 13:17:32.573003 2015] [mpm_prefork:notice] [pid 3675] AH00163: Apache/2.4.16 (Amazon) mod_wsgi/3.5 Python/2.7.10 configured -- resuming normal operations
+[Fri Nov 06 13:17:32.573019 2015] [core:notice] [pid 3675] AH00094: Command line: '/usr/sbin/httpd -D FOREGROUND'
+[Fri Nov 06 13:59:03.963858 2015] [mpm_prefork:notice] [pid 3675] AH00169: caught SIGTERM, shutting down
+[Fri Nov 06 13:59:05.017467 2015] [suexec:notice] [pid 4462] AH01232: suEXEC mechanism enabled (wrapper: /usr/sbin/suexec)
+[Fri Nov 06 13:59:05.027448 2015] [so:warn] [pid 4462] AH01574: module wsgi_module is already loaded, skipping
+[Fri Nov 06 13:59:05.029263 2015] [auth_digest:notice] [pid 4462] AH01757: generating secret for digest authentication ...
+[Fri Nov 06 13:59:05.029882 2015] [lbmethod_heartbeat:notice] [pid 4462] AH02282: No slotmem from mod_heartmonitor
+[Fri Nov 06 13:59:05.029916 2015] [:warn] [pid 4462] mod_wsgi: Compiled for Python/2.7.9.
+[Fri Nov 06 13:59:05.029920 2015] [:warn] [pid 4462] mod_wsgi: Runtime using Python/2.7.10.
+[Fri Nov 06 13:59:05.031632 2015] [mpm_prefork:notice] [pid 4462] AH00163: Apache/2.4.16 (Amazon) mod_wsgi/3.5 Python/2.7.10 configured -- resuming normal operations
+[Fri Nov 06 13:59:05.031646 2015] [core:notice] [pid 4462] AH00094: Command line: '/usr/sbin/httpd -D FOREGROUND'
+
+
+
+-------------------------------------
+/opt/python/log/supervisord.log
+-------------------------------------
+2015-11-06 13:16:46,905 CRIT Supervisor running as root (no user in config file)
+2015-11-06 13:16:46,946 INFO RPC interface 'supervisor' initialized
+2015-11-06 13:16:46,946 CRIT Server 'unix_http_server' running without any HTTP authentication checking
+2015-11-06 13:16:46,946 INFO supervisord started with pid 2640
+2015-11-06 13:16:47,948 INFO spawned: 'httpd' with pid 2719
+2015-11-06 13:16:48,949 INFO success: httpd entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2015-11-06 13:17:31,516 INFO stopped: httpd (exit status 0)
+2015-11-06 13:17:32,521 INFO spawned: 'httpd' with pid 3675
+2015-11-06 13:17:33,558 INFO success: httpd entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2015-11-06 13:59:03,975 INFO stopped: httpd (exit status 0)
+2015-11-06 13:59:04,980 INFO spawned: 'httpd' with pid 4462
+2015-11-06 13:59:06,017 INFO success: httpd entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+
+
+
+-------------------------------------
+/var/log/httpd/access_log
+-------------------------------------
+127.0.0.1 (-) - - [06/Nov/2015:13:17:35 +0000] "GET / HTTP/1.1" 200 266 "-" "Python-urllib/2.7"
+172.31.19.194 (173.2.182.166) - - [06/Nov/2015:13:20:33 +0000] "GET / HTTP/1.1" 200 266 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/46.0.2490.80 Safari/537.36"
+172.31.19.194 (173.2.182.166) - - [06/Nov/2015:13:20:34 +0000] "GET /favicon.ico HTTP/1.1" 200 131 "http://wikisonnet-dev2.elasticbeanstalk.com/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/46.0.2490.80 Safari/537.36"
+172.31.19.194 (173.2.182.166) - - [06/Nov/2015:13:20:35 +0000] "GET /favicon.ico HTTP/1.1" 200 131 "http://wikisonnet-dev2.elasticbeanstalk.com/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/46.0.2490.80 Safari/537.36"
+172.31.19.194 (173.2.182.166) - - [06/Nov/2015:13:20:35 +0000] "GET /favicon.ico HTTP/1.1" 200 131 "http://wikisonnet-dev2.elasticbeanstalk.com/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/46.0.2490.80 Safari/537.36"
+::1 (-) - - [06/Nov/2015:13:21:09 +0000] "OPTIONS * HTTP/1.0" 200 - "-" "Apache/2.4.16 (Amazon) mod_wsgi/3.5 Python/2.7.10 (internal dummy connection)"
+::1 (-) - - [06/Nov/2015:13:21:33 +0000] "OPTIONS * HTTP/1.0" 200 - "-" "Apache/2.4.16 (Amazon) mod_wsgi/3.5 Python/2.7.10 (internal dummy connection)"
+::1 (-) - - [06/Nov/2015:13:21:34 +0000] "OPTIONS * HTTP/1.0" 200 - "-" "Apache/2.4.16 (Amazon) mod_wsgi/3.5 Python/2.7.10 (internal dummy connection)"
+::1 (-) - - [06/Nov/2015:13:21:35 +0000] "OPTIONS * HTTP/1.0" 200 - "-" "Apache/2.4.16 (Amazon) mod_wsgi/3.5 Python/2.7.10 (internal dummy connection)"
+::1 (-) - - [06/Nov/2015:13:21:36 +0000] "OPTIONS * HTTP/1.0" 200 - "-" "Apache/2.4.16 (Amazon) mod_wsgi/3.5 Python/2.7.10 (internal dummy connection)"
+::1 (-) - - [06/Nov/2015:13:21:37 +0000] "OPTIONS * HTTP/1.0" 200 - "-" "Apache/2.4.16 (Amazon) mod_wsgi/3.5 Python/2.7.10 (internal dummy connection)"
+::1 (-) - - [06/Nov/2015:13:21:38 +0000] "OPTIONS * HTTP/1.0" 200 - "-" "Apache/2.4.16 (Amazon) mod_wsgi/3.5 Python/2.7.10 (internal dummy connection)"
+172.31.19.194 (173.2.182.166) - - [06/Nov/2015:13:21:39 +0000] "GET /favicon.ico HTTP/1.1" 200 131 "http://wikisonnet-dev2.elasticbeanstalk.com/random" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/46.0.2490.80 Safari/537.36"
+::1 (-) - - [06/Nov/2015:13:21:39 +0000] "OPTIONS * HTTP/1.0" 200 - "-" "Apache/2.4.16 (Amazon) mod_wsgi/3.5 Python/2.7.10 (internal dummy connection)"
+172.31.19.194 (173.2.182.166) - - [06/Nov/2015:13:21:40 +0000] "GET /favicon.ico HTTP/1.1" 200 131 "http://wikisonnet-dev2.elasticbeanstalk.com/random" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/46.0.2490.80 Safari/537.36"
+::1 (-) - - [06/Nov/2015:13:21:40 +0000] "OPTIONS * HTTP/1.0" 200 - "-" "Apache/2.4.16 (Amazon) mod_wsgi/3.5 Python/2.7.10 (internal dummy connection)"
+172.31.19.194 (173.2.182.166) - - [06/Nov/2015:13:21:40 +0000] "GET /favicon.ico HTTP/1.1" 200 131 "http://wikisonnet-dev2.elasticbeanstalk.com/random" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/46.0.2490.80 Safari/537.36"
+172.31.19.194 (173.2.182.166) - - [06/Nov/2015:13:21:41 +0000] "GET /favicon.ico HTTP/1.1" 200 131 "http://wikisonnet-dev2.elasticbeanstalk.com/random" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/46.0.2490.80 Safari/537.36"
+::1 (-) - - [06/Nov/2015:13:21:46 +0000] "OPTIONS * HTTP/1.0" 200 - "-" "Apache/2.4.16 (Amazon) mod_wsgi/3.5 Python/2.7.10 (internal dummy connection)"
+::1 (-) - - [06/Nov/2015:13:22:40 +0000] "OPTIONS * HTTP/1.0" 200 - "-" "Apache/2.4.16 (Amazon) mod_wsgi/3.5 Python/2.7.10 (internal dummy connection)"
+::1 (-) - - [06/Nov/2015:13:22:41 +0000] "OPTIONS * HTTP/1.0" 200 - "-" "Apache/2.4.16 (Amazon) mod_wsgi/3.5 Python/2.7.10 (internal dummy connection)"
+::1 (-) - - [06/Nov/2015:13:22:42 +0000] "OPTIONS * HTTP/1.0" 200 - "-" "Apache/2.4.16 (Amazon) mod_wsgi/3.5 Python/2.7.10 (internal dummy connection)"
+::1 (-) - - [06/Nov/2015:13:22:43 +0000] "OPTIONS * HTTP/1.0" 200 - "-" "Apache/2.4.16 (Amazon) mod_wsgi/3.5 Python/2.7.10 (internal dummy connection)"
+::1 (-) - - [06/Nov/2015:13:22:44 +0000] "OPTIONS * HTTP/1.0" 200 - "-" "Apache/2.4.16 (Amazon) mod_wsgi/3.5 Python/2.7.10 (internal dummy connection)"
+::1 (-) - - [06/Nov/2015:13:22:46 +0000] "OPTIONS * HTTP/1.0" 200 - "-" "Apache/2.4.16 (Amazon) mod_wsgi/3.5 Python/2.7.10 (internal dummy connection)"
+172.31.19.194 (173.2.182.166) - - [06/Nov/2015:13:20:39 +0000] "GET /random HTTP/1.1" 500 291 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/46.0.2490.80 Safari/537.36"
+::1 (-) - - [06/Nov/2015:13:22:47 +0000] "OPTIONS * HTTP/1.0" 200 - "-" "Apache/2.4.16 (Amazon) mod_wsgi/3.5 Python/2.7.10 (internal dummy connection)"
+::1 (-) - - [06/Nov/2015:13:23:02 +0000] "OPTIONS * HTTP/1.0" 200 - "-" "Apache/2.4.16 (Amazon) mod_wsgi/3.5 Python/2.7.10 (internal dummy connection)"
+172.31.19.194 (173.2.182.166) - - [06/Nov/2015:13:37:20 +0000] "GET /random HTTP/1.1" 200 99 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/46.0.2490.80 Safari/537.36"
+172.31.19.194 (173.2.182.166) - - [06/Nov/2015:13:37:21 +0000] "GET /favicon.ico HTTP/1.1" 200 131 "http://wikisonnet-dev2.elasticbeanstalk.com/random" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/46.0.2490.80 Safari/537.36"
+172.31.19.194 (173.2.182.166) - - [06/Nov/2015:13:37:22 +0000] "GET /favicon.ico HTTP/1.1" 200 131 "http://wikisonnet-dev2.elasticbeanstalk.com/random" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/46.0.2490.80 Safari/537.36"
+172.31.19.194 (173.2.182.166) - - [06/Nov/2015:13:37:22 +0000] "GET /random HTTP/1.1" 200 150 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/46.0.2490.80 Safari/537.36"
+172.31.19.194 (173.2.182.166) - - [06/Nov/2015:13:37:23 +0000] "GET /favicon.ico HTTP/1.1" 200 131 "http://wikisonnet-dev2.elasticbeanstalk.com/random" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/46.0.2490.80 Safari/537.36"
+172.31.19.194 (173.2.182.166) - - [06/Nov/2015:13:37:24 +0000] "GET /favicon.ico HTTP/1.1" 200 131 "http://wikisonnet-dev2.elasticbeanstalk.com/random" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/46.0.2490.80 Safari/537.36"
+172.31.19.194 (173.2.182.166) - - [06/Nov/2015:13:37:23 +0000] "GET /random HTTP/1.1" 200 111 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/46.0.2490.80 Safari/537.36"
+172.31.19.194 (173.2.182.166) - - [06/Nov/2015:13:37:24 +0000] "GET /favicon.ico HTTP/1.1" 200 131 "http://wikisonnet-dev2.elasticbeanstalk.com/random" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/46.0.2490.80 Safari/537.36"
+172.31.19.194 (173.2.182.166) - - [06/Nov/2015:13:37:24 +0000] "GET /favicon.ico HTTP/1.1" 200 131 "http://wikisonnet-dev2.elasticbeanstalk.com/random" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/46.0.2490.80 Safari/537.36"
+172.31.19.194 (173.2.182.166) - - [06/Nov/2015:13:37:25 +0000] "GET /favicon.ico HTTP/1.1" 200 131 "http://wikisonnet-dev2.elasticbeanstalk.com/random" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/46.0.2490.80 Safari/537.36"
+::1 (-) - - [06/Nov/2015:13:37:57 +0000] "OPTIONS * HTTP/1.0" 200 - "-" "Apache/2.4.16 (Amazon) mod_wsgi/3.5 Python/2.7.10 (internal dummy connection)"
+::1 (-) - - [06/Nov/2015:13:38:20 +0000] "OPTIONS * HTTP/1.0" 200 - "-" "Apache/2.4.16 (Amazon) mod_wsgi/3.5 Python/2.7.10 (internal dummy connection)"
+::1 (-) - - [06/Nov/2015:13:38:21 +0000] "OPTIONS * HTTP/1.0" 200 - "-" "Apache/2.4.16 (Amazon) mod_wsgi/3.5 Python/2.7.10 (internal dummy connection)"
+::1 (-) - - [06/Nov/2015:13:38:22 +0000] "OPTIONS * HTTP/1.0" 200 - "-" "Apache/2.4.16 (Amazon) mod_wsgi/3.5 Python/2.7.10 (internal dummy connection)"
+::1 (-) - - [06/Nov/2015:13:38:23 +0000] "OPTIONS * HTTP/1.0" 200 - "-" "Apache/2.4.16 (Amazon) mod_wsgi/3.5 Python/2.7.10 (internal dummy connection)"
+::1 (-) - - [06/Nov/2015:13:38:24 +0000] "OPTIONS * HTTP/1.0" 200 - "-" "Apache/2.4.16 (Amazon) mod_wsgi/3.5 Python/2.7.10 (internal dummy connection)"
+::1 (-) - - [06/Nov/2015:13:38:25 +0000] "OPTIONS * HTTP/1.0" 200 - "-" "Apache/2.4.16 (Amazon) mod_wsgi/3.5 Python/2.7.10 (internal dummy connection)"
+::1 (-) - - [06/Nov/2015:13:38:26 +0000] "OPTIONS * HTTP/1.0" 200 - "-" "Apache/2.4.16 (Amazon) mod_wsgi/3.5 Python/2.7.10 (internal dummy connection)"
+::1 (-) - - [06/Nov/2015:13:38:27 +0000] "OPTIONS * HTTP/1.0" 200 - "-" "Apache/2.4.16 (Amazon) mod_wsgi/3.5 Python/2.7.10 (internal dummy connection)"
+::1 (-) - - [06/Nov/2015:13:38:28 +0000] "OPTIONS * HTTP/1.0" 200 - "-" "Apache/2.4.16 (Amazon) mod_wsgi/3.5 Python/2.7.10 (internal dummy connection)"
+::1 (-) - - [06/Nov/2015:13:38:29 +0000] "OPTIONS * HTTP/1.0" 200 - "-" "Apache/2.4.16 (Amazon) mod_wsgi/3.5 Python/2.7.10 (internal dummy connection)"
+::1 (-) - - [06/Nov/2015:13:38:30 +0000] "OPTIONS * HTTP/1.0" 200 - "-" "Apache/2.4.16 (Amazon) mod_wsgi/3.5 Python/2.7.10 (internal dummy connection)"
+::1 (-) - - [06/Nov/2015:13:38:31 +0000] "OPTIONS * HTTP/1.0" 200 - "-" "Apache/2.4.16 (Amazon) mod_wsgi/3.5 Python/2.7.10 (internal dummy connection)"
+::1 (-) - - [06/Nov/2015:13:38:32 +0000] "OPTIONS * HTTP/1.0" 200 - "-" "Apache/2.4.16 (Amazon) mod_wsgi/3.5 Python/2.7.10 (internal dummy connection)"
+::1 (-) - - [06/Nov/2015:13:39:30 +0000] "OPTIONS * HTTP/1.0" 200 - "-" "Apache/2.4.16 (Amazon) mod_wsgi/3.5 Python/2.7.10 (internal dummy connection)"
+127.0.0.1 (-) - - [06/Nov/2015:13:59:07 +0000] "GET / HTTP/1.1" 200 266 "-" "Python-urllib/2.7"
+172.31.37.63 (173.2.182.166) - - [06/Nov/2015:14:00:54 +0000] "GET / HTTP/1.1" 200 266 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/46.0.2490.80 Safari/537.36"
+172.31.37.63 (173.2.182.166) - - [06/Nov/2015:14:00:54 +0000] "GET /favicon.ico HTTP/1.1" 200 131 "http://wikisonnet-dev2.elasticbeanstalk.com/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/46.0.2490.80 Safari/537.36"
+172.31.37.63 (173.2.182.166) - - [06/Nov/2015:14:00:55 +0000] "GET /favicon.ico HTTP/1.1" 200 131 "http://wikisonnet-dev2.elasticbeanstalk.com/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/46.0.2490.80 Safari/537.36"
+172.31.37.63 (173.2.182.166) - - [06/Nov/2015:14:00:55 +0000] "GET /favicon.ico HTTP/1.1" 200 131 "http://wikisonnet-dev2.elasticbeanstalk.com/" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/46.0.2490.80 Safari/537.36"
+172.31.37.63 (173.2.182.166) - - [06/Nov/2015:14:00:59 +0000] "GET /random HTTP/1.1" 200 107 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/46.0.2490.80 Safari/537.36"
+172.31.37.63 (173.2.182.166) - - [06/Nov/2015:14:01:00 +0000] "GET /favicon.ico HTTP/1.1" 200 131 "http://wikisonnet-dev2.elasticbeanstalk.com/random" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/46.0.2490.80 Safari/537.36"
+172.31.37.63 (173.2.182.166) - - [06/Nov/2015:14:01:00 +0000] "GET /favicon.ico HTTP/1.1" 200 131 "http://wikisonnet-dev2.elasticbeanstalk.com/random" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/46.0.2490.80 Safari/537.36"
+172.31.37.63 (173.2.182.166) - - [06/Nov/2015:14:01:00 +0000] "GET /favicon.ico HTTP/1.1" 200 131 "http://wikisonnet-dev2.elasticbeanstalk.com/random" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/46.0.2490.80 Safari/537.36"
+172.31.37.63 (173.2.182.166) - - [06/Nov/2015:14:01:01 +0000] "GET /favicon.ico HTTP/1.1" 200 131 "http://wikisonnet-dev2.elasticbeanstalk.com/random" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/46.0.2490.80 Safari/537.36"
+172.31.37.63 (173.2.182.166) - - [06/Nov/2015:14:01:01 +0000] "GET /favicon.ico HTTP/1.1" 200 131 "http://wikisonnet-dev2.elasticbeanstalk.com/random" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/46.0.2490.80 Safari/537.36"
+172.31.37.63 (173.2.182.166) - - [06/Nov/2015:14:01:09 +0000] "GET /api/v1/compose/butter HTTP/1.1" 500 291 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/46.0.2490.80 Safari/537.36"
+172.31.37.63 (173.2.182.166) - - [06/Nov/2015:14:01:09 +0000] "GET /favicon.ico HTTP/1.1" 200 131 "http://wikisonnet-dev2.elasticbeanstalk.com/api/v1/compose/butter" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/46.0.2490.80 Safari/537.36"
+172.31.37.63 (173.2.182.166) - - [06/Nov/2015:14:01:10 +0000] "GET /favicon.ico HTTP/1.1" 200 131 "http://wikisonnet-dev2.elasticbeanstalk.com/api/v1/compose/butter" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/46.0.2490.80 Safari/537.36"
+172.31.37.63 (173.2.182.166) - - [06/Nov/2015:14:01:10 +0000] "GET /favicon.ico HTTP/1.1" 200 131 "http://wikisonnet-dev2.elasticbeanstalk.com/api/v1/compose/butter" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/46.0.2490.80 Safari/537.36"
+
+
+
+-------------------------------------
+/var/log/eb-activity.log
+-------------------------------------
+[2015-11-06T13:58:58.583Z] INFO  [4328]  - [Application update] : Starting activity...
+[2015-11-06T13:58:58.815Z] INFO  [4328]  - [Application update/AddonsBefore] : Starting activity...
+[2015-11-06T13:58:58.815Z] INFO  [4328]  - [Application update/AddonsBefore] : Completed activity.
+[2015-11-06T13:58:59.087Z] INFO  [4328]  - [Application update/AppDeployStage0] : Starting activity...
+[2015-11-06T13:58:59.087Z] INFO  [4328]  - [Application update/AppDeployStage0/InfraWriteConfig] : Starting activity...
+[2015-11-06T13:58:59.090Z] INFO  [4328]  - [Application update/AppDeployStage0/InfraWriteConfig] : Completed activity. Result:
+  Recreated directory /opt/elasticbeanstalk/deploy/configuration/.
+  Generate appsource url file at /opt/elasticbeanstalk/deploy/configuration/appsourceurl.
+  Generate container config file at /opt/elasticbeanstalk/deploy/configuration/containerconfiguration.
+[2015-11-06T13:58:59.090Z] INFO  [4328]  - [Application update/AppDeployStage0/InfraWriteApp1] : Starting activity...
+[2015-11-06T13:58:59.090Z] INFO  [4328]  - [Application update/AppDeployStage0/InfraWriteApp1] : Completed activity. Result:
+  Recreated directory /opt/elasticbeanstalk/deploy/appsource.
+[2015-11-06T13:58:59.090Z] INFO  [4328]  - [Application update/AppDeployStage0/InfraWriteApp2] : Starting activity...
+[2015-11-06T13:58:59.338Z] INFO  [4328]  - [Application update/AppDeployStage0/InfraWriteApp2/Infra-WriteApplication2] : Starting activity...
+[2015-11-06T13:58:59.338Z] INFO  [4328]  - [Application update/AppDeployStage0/InfraWriteApp2/Infra-WriteApplication2/Infra-WriteApplication2] : Starting activity...
+[2015-11-06T13:58:59.373Z] INFO  [4328]  - [Application update/AppDeployStage0/InfraWriteApp2/Infra-WriteApplication2/Infra-WriteApplication2/Command 01downloadVersion] : Starting activity...
+[2015-11-06T13:58:59.597Z] INFO  [4328]  - [Application update/AppDeployStage0/InfraWriteApp2/Infra-WriteApplication2/Infra-WriteApplication2/Command 01downloadVersion] : Completed activity.
+[2015-11-06T13:58:59.597Z] INFO  [4328]  - [Application update/AppDeployStage0/InfraWriteApp2/Infra-WriteApplication2/Infra-WriteApplication2/Command 02deleteVersionDownloadScriptFile] : Starting activity...
+[2015-11-06T13:58:59.600Z] INFO  [4328]  - [Application update/AppDeployStage0/InfraWriteApp2/Infra-WriteApplication2/Infra-WriteApplication2/Command 02deleteVersionDownloadScriptFile] : Completed activity.
+[2015-11-06T13:58:59.600Z] INFO  [4328]  - [Application update/AppDeployStage0/InfraWriteApp2/Infra-WriteApplication2/Infra-WriteApplication2] : Completed activity.
+[2015-11-06T13:58:59.600Z] INFO  [4328]  - [Application update/AppDeployStage0/InfraWriteApp2/Infra-WriteApplication2] : Completed activity.
+[2015-11-06T13:58:59.623Z] INFO  [4328]  - [Application update/AppDeployStage0/InfraWriteApp2] : Completed activity.
+[2015-11-06T13:58:59.623Z] INFO  [4328]  - [Application update/AppDeployStage0/EbExtensionPreBuild] : Starting activity...
+[2015-11-06T13:59:00.068Z] INFO  [4328]  - [Application update/AppDeployStage0/EbExtensionPreBuild/Infra-EmbeddedPreBuild] : Starting activity...
+[2015-11-06T13:59:00.068Z] INFO  [4328]  - [Application update/AppDeployStage0/EbExtensionPreBuild/Infra-EmbeddedPreBuild] : Completed activity.
+[2015-11-06T13:59:00.086Z] INFO  [4328]  - [Application update/AppDeployStage0/EbExtensionPreBuild] : Completed activity.
+[2015-11-06T13:59:00.086Z] INFO  [4328]  - [Application update/AppDeployStage0/AppDeployPreHook] : Starting activity...
+[2015-11-06T13:59:00.087Z] INFO  [4328]  - [Application update/AppDeployStage0/AppDeployPreHook/01new.py] : Starting activity...
+[2015-11-06T13:59:00.447Z] INFO  [4328]  - [Application update/AppDeployStage0/AppDeployPreHook/01new.py] : Completed activity.
+[2015-11-06T13:59:00.447Z] INFO  [4328]  - [Application update/AppDeployStage0/AppDeployPreHook/02unzip.py] : Starting activity...
+[2015-11-06T13:59:00.808Z] INFO  [4328]  - [Application update/AppDeployStage0/AppDeployPreHook/02unzip.py] : Completed activity. Result:
+  Archive:  /opt/elasticbeanstalk/deploy/appsource/source_bundle
+    inflating: /opt/python/ondeck/app/application.py  
+    inflating: /opt/python/ondeck/app/benchmarking.py  
+    inflating: /opt/python/ondeck/app/benchmarking.pyc  
+    inflating: /opt/python/ondeck/app/dbmanager.py  
+    inflating: /opt/python/ondeck/app/dbmanager.pyc  
+    inflating: /opt/python/ondeck/app/logs.txt  
+    inflating: /opt/python/ondeck/app/requirements.txt  
+    inflating: /opt/python/ondeck/app/wikibard.py  
+    inflating: /opt/python/ondeck/app/wikibard.pyc  
+[2015-11-06T13:59:00.809Z] INFO  [4328]  - [Application update/AppDeployStage0/AppDeployPreHook/03deploy.py] : Starting activity...
+[2015-11-06T13:59:01.306Z] INFO  [4328]  - [Application update/AppDeployStage0/AppDeployPreHook/03deploy.py] : Completed activity. Result:
+  Requirement already satisfied (use --upgrade to upgrade): Flask==0.10.1 in /opt/python/run/venv/lib/python2.7/site-packages (from -r /opt/python/ondeck/app/requirements.txt (line 2))
+  Requirement already satisfied (use --upgrade to upgrade): iso8601==0.1.11 in /opt/python/run/venv/lib/python2.7/site-packages (from -r /opt/python/ondeck/app/requirements.txt (line 3))
+  Requirement already satisfied (use --upgrade to upgrade): itsdangerous==0.24 in /opt/python/run/venv/lib/python2.7/site-packages (from -r /opt/python/ondeck/app/requirements.txt (line 4))
+  Requirement already satisfied (use --upgrade to upgrade): Jinja2==2.8 in /opt/python/run/venv/lib/python2.7/site-packages (from -r /opt/python/ondeck/app/requirements.txt (line 5))
+  Requirement already satisfied (use --upgrade to upgrade): MarkupSafe==0.23 in /opt/python/run/venv/lib64/python2.7/site-packages (from -r /opt/python/ondeck/app/requirements.txt (line 6))
+  Requirement already satisfied (use --upgrade to upgrade): mysql==0.0.1 in /opt/python/run/venv/lib/python2.7/site-packages (from -r /opt/python/ondeck/app/requirements.txt (line 7))
+  Requirement already satisfied (use --upgrade to upgrade): mysql-connector-python==2.0.4 in /opt/python/run/venv/lib/python2.7/site-packages (from -r /opt/python/ondeck/app/requirements.txt (line 8))
+  Requirement already satisfied (use --upgrade to upgrade): MySQL-python==1.2.5 in /opt/python/run/venv/lib64/python2.7/site-packages (from -r /opt/python/ondeck/app/requirements.txt (line 9))
+  Requirement already satisfied (use --upgrade to upgrade): Werkzeug==0.10.4 in /opt/python/run/venv/lib/python2.7/site-packages (from -r /opt/python/ondeck/app/requirements.txt (line 10))
+  Requirement already satisfied (use --upgrade to upgrade): wheel==0.24.0 in /opt/python/run/venv/lib/python2.7/site-packages (from -r /opt/python/ondeck/app/requirements.txt (line 11))
+[2015-11-06T13:59:01.306Z] INFO  [4328]  - [Application update/AppDeployStage0/AppDeployPreHook/04configen.py] : Starting activity...
+[2015-11-06T13:59:03.088Z] INFO  [4328]  - [Application update/AppDeployStage0/AppDeployPreHook/04configen.py] : Completed activity.
+[2015-11-06T13:59:03.088Z] INFO  [4328]  - [Application update/AppDeployStage0/AppDeployPreHook] : Completed activity. Result:
+  Successfully execute hooks in directory /opt/elasticbeanstalk/hooks/appdeploy/pre.
+[2015-11-06T13:59:03.088Z] INFO  [4328]  - [Application update/AppDeployStage0/EbExtensionPostBuild] : Starting activity...
+[2015-11-06T13:59:03.385Z] INFO  [4328]  - [Application update/AppDeployStage0/EbExtensionPostBuild/Infra-EmbeddedPostBuild] : Starting activity...
+[2015-11-06T13:59:03.386Z] INFO  [4328]  - [Application update/AppDeployStage0/EbExtensionPostBuild/Infra-EmbeddedPostBuild] : Completed activity.
+[2015-11-06T13:59:03.402Z] INFO  [4328]  - [Application update/AppDeployStage0/EbExtensionPostBuild] : Completed activity.
+[2015-11-06T13:59:03.402Z] INFO  [4328]  - [Application update/AppDeployStage0/InfraCleanEbextension] : Starting activity...
+[2015-11-06T13:59:03.403Z] INFO  [4328]  - [Application update/AppDeployStage0/InfraCleanEbextension] : Completed activity. Result:
+  Cleaned ebextensions subdirectories from /opt/python/ondeck/app.
+[2015-11-06T13:59:03.403Z] INFO  [4328]  - [Application update/AppDeployStage0] : Completed activity. Result:
+  Application update - Command CMD-AppDeploy stage 0 completed
+[2015-11-06T13:59:03.403Z] INFO  [4328]  - [Application update/AppDeployStage1] : Starting activity...
+[2015-11-06T13:59:03.403Z] INFO  [4328]  - [Application update/AppDeployStage1/AppDeployEnactHook] : Starting activity...
+[2015-11-06T13:59:03.403Z] INFO  [4328]  - [Application update/AppDeployStage1/AppDeployEnactHook/01flip.py] : Starting activity...
+[2015-11-06T13:59:07.786Z] INFO  [4328]  - [Application update/AppDeployStage1/AppDeployEnactHook/01flip.py] : Completed activity. Result:
+  httpd: stopped
+  httpd: started
+  httpd                            RUNNING   pid 4462, uptime 0:00:03
+[2015-11-06T13:59:07.786Z] INFO  [4328]  - [Application update/AppDeployStage1/AppDeployEnactHook/02create_pids_for_monitoring.sh] : Starting activity...
+[2015-11-06T13:59:07.892Z] INFO  [4328]  - [Application update/AppDeployStage1/AppDeployEnactHook/02create_pids_for_monitoring.sh] : Completed activity. Result:
+  + chmod 0755 /var/run/httpd
+  + /opt/elasticbeanstalk/bin/healthd-track-pidfile --proxy httpd
+  + /opt/elasticbeanstalk/bin/healthd-track-pidfile --name application --location /opt/python/run/supervisord.pid
+[2015-11-06T13:59:07.892Z] INFO  [4328]  - [Application update/AppDeployStage1/AppDeployEnactHook] : Completed activity. Result:
+  Successfully execute hooks in directory /opt/elasticbeanstalk/hooks/appdeploy/enact.
+[2015-11-06T13:59:07.892Z] INFO  [4328]  - [Application update/AppDeployStage1/AppDeployPostHook] : Starting activity...
+[2015-11-06T13:59:07.892Z] INFO  [4328]  - [Application update/AppDeployStage1/AppDeployPostHook] : Completed activity. Result:
+  Successfully execute hooks in directory /opt/elasticbeanstalk/hooks/appdeploy/post.
+[2015-11-06T13:59:07.893Z] INFO  [4328]  - [Application update/AppDeployStage1] : Completed activity. Result:
+  Application version switch - Command CMD-AppDeploy stage 1 completed
+[2015-11-06T13:59:07.893Z] INFO  [4328]  - [Application update/AddonsAfter] : Starting activity...
+[2015-11-06T13:59:07.893Z] INFO  [4328]  - [Application update/AddonsAfter/ConfigLogRotation] : Starting activity...
+[2015-11-06T13:59:07.893Z] INFO  [4328]  - [Application update/AddonsAfter/ConfigLogRotation/10-config.sh] : Starting activity...
+[2015-11-06T13:59:07.995Z] INFO  [4328]  - [Application update/AddonsAfter/ConfigLogRotation/10-config.sh] : Completed activity. Result:
+  Disabled forced hourly log rotation.
+[2015-11-06T13:59:07.995Z] INFO  [4328]  - [Application update/AddonsAfter/ConfigLogRotation] : Completed activity. Result:
+  Successfully execute hooks in directory /opt/elasticbeanstalk/addons/logpublish/hooks/config.
+[2015-11-06T13:59:07.995Z] INFO  [4328]  - [Application update/AddonsAfter] : Completed activity.
+[2015-11-06T13:59:07.995Z] INFO  [4328]  - [Application update] : Completed activity. Result:
+  Application update - Command CMD-AppDeploy succeeded
+[2015-11-06T14:01:42.971Z] INFO  [4610]  - [CMD-TailLogs - stage ] : Starting activity...
+[2015-11-06T14:01:43.203Z] INFO  [4610]  - [CMD-TailLogs - stage /AddonsBefore] : Starting activity...
+[2015-11-06T14:01:43.203Z] INFO  [4610]  - [CMD-TailLogs - stage /AddonsBefore] : Completed activity.
+[2015-11-06T14:01:43.203Z] INFO  [4610]  - [CMD-TailLogs - stage /TailLogs] : Starting activity...
+[2015-11-06T14:01:43.203Z] INFO  [4610]  - [CMD-TailLogs - stage /TailLogs/TailLogs] : Starting activity...
+
+
+
+-------------------------------------
+/var/log/eb-commandprocessor.log
+-------------------------------------
+[2015-11-06T13:17:30.857Z] DEBUG [3659]  : Opening previous stage file /var/lib/eb-tools/data/stages/20173aa6-8488-11e5-8491-9dafb0c1cf3e..
+[2015-11-06T13:17:30.857Z] DEBUG [3659]  : Previous stage file contains: 0.
+[2015-11-06T13:17:30.857Z] DEBUG [3659]  : Returning 0..
+[2015-11-06T13:17:30.857Z] INFO  [3659]  : Previous stage (0) is one less that current stage (1). Valid stage..
+[2015-11-06T13:17:30.858Z] INFO  [3659]  : Received command CMD-Startup(stage 1): {"instance_ids":["i-efd00536"],"stage_num":1,"stage_name":"02_enact","command_name":"CMD-Startup","api_version":"1.0","resource_name":"AWSEBAutoScalingGroup","request_id":"20173aa6-8488-11e5-8491-9dafb0c1cf3e","is_last_stage":true,"command_timeout":"600"}
+[2015-11-06T13:17:30.858Z] INFO  [3659]  : Command processor should execute command.
+[2015-11-06T13:17:30.858Z] DEBUG [3659]  : Storing current stage..
+[2015-11-06T13:17:30.858Z] INFO  [3659]  : This was last stage for the command. Removing saved stage info for request..
+[2015-11-06T13:17:30.858Z] INFO  [3659]  : Executing Application deployment
+[2015-11-06T13:17:30.858Z] INFO  [3659]  : Executing command: CMD-Startup(stage 1)...
+[2015-11-06T13:17:30.858Z] DEBUG [3659]  : Reading config file: /etc/elasticbeanstalk/.aws-eb-stack.properties
+[2015-11-06T13:17:30.858Z] DEBUG [3659]  : Refreshing metadata..
+[2015-11-06T13:17:30.859Z] DEBUG [3659]  : Refreshed environment metadata.
+[2015-11-06T13:17:30.859Z] DEBUG [3659]  : Retrieving metadata for key: AWS::ElasticBeanstalk::Ext||_ContainerConfigFileContent||commands..
+[2015-11-06T13:17:30.859Z] DEBUG [3659]  : Retrieving metadata for key: AWS::ElasticBeanstalk::Ext||_API||_Commands..
+[2015-11-06T13:17:30.860Z] INFO  [3659]  : Found enabled addons: ["logpublish"].
+[2015-11-06T13:17:30.861Z] INFO  [3659]  : Updating Command definition of addon logpublish.
+[2015-11-06T13:17:30.861Z] DEBUG [3659]  : Loaded definition of Command CMD-Startup.
+[2015-11-06T13:17:30.861Z] INFO  [3659]  : Executing command CMD-Startup activities...
+[2015-11-06T13:17:30.861Z] DEBUG [3659]  : Setting environment variables..
+[2015-11-06T13:17:30.861Z] DEBUG [3659]  : Running stages of Command CMD-Startup from stage 1 to stage 1...
+[2015-11-06T13:17:30.861Z] INFO  [3659]  : Running stage 1 of command CMD-Startup...
+[2015-11-06T13:17:30.861Z] DEBUG [3659]  : Loaded 3 actions for stage 1.
+[2015-11-06T13:17:30.861Z] INFO  [3659]  : Running 1 of 3 actions: AppDeployEnactHook...
+[2015-11-06T13:17:35.431Z] INFO  [3659]  : Running 2 of 3 actions: AppDeployPostHook...
+[2015-11-06T13:17:35.431Z] INFO  [3659]  : Running 3 of 3 actions: PostInitHook...
+[2015-11-06T13:17:35.436Z] INFO  [3659]  : Running AddonsAfter for command CMD-Startup...
+[2015-11-06T13:17:35.549Z] INFO  [3659]  : Command CMD-Startup(stage 1) succeeded!
+[2015-11-06T13:17:35.550Z] INFO  [3659]  : Command processor returning results: 
+{"status":"SUCCESS","api_version":"1.0","results":[{"status":"SUCCESS","msg":"","returncode":0,"events":[]}]}
+[2015-11-06T13:58:58.581Z] DEBUG [4328]  : Reading config file: /etc/elasticbeanstalk/.aws-eb-stack.properties
+[2015-11-06T13:58:58.581Z] DEBUG [4328]  : Checking if the command processor should execute...
+[2015-11-06T13:58:58.582Z] DEBUG [4328]  : Checking whether the command is applicable to instance (i-efd00536)..
+[2015-11-06T13:58:58.582Z] INFO  [4328]  : Command is applicable to this instance (i-efd00536)..
+[2015-11-06T13:58:58.582Z] DEBUG [4328]  : Checking if the received command stage is valid..
+[2015-11-06T13:58:58.583Z] INFO  [4328]  : No stage_num in command. Valid stage..
+[2015-11-06T13:58:58.583Z] INFO  [4328]  : Received command CMD-AppDeploy: {"execution_data":"{\"leader_election\":\"true\"}","instance_ids":["i-efd00536"],"data":"manifest_1446818335768","command_name":"CMD-AppDeploy","api_version":"1.0","resource_name":"AWSEBAutoScalingGroup","request_id":"832dd76a-848e-11e5-9ea1-cdba14670087","command_timeout":"600"}
+[2015-11-06T13:58:58.583Z] INFO  [4328]  : Command processor should execute command.
+[2015-11-06T13:58:58.583Z] DEBUG [4328]  : Storing current stage..
+[2015-11-06T13:58:58.583Z] DEBUG [4328]  : Stage_num does not exist. Not saving null stage. Returning..
+[2015-11-06T13:58:58.583Z] INFO  [4328]  : Executing Application update
+[2015-11-06T13:58:58.583Z] INFO  [4328]  : Executing command: CMD-AppDeploy...
+[2015-11-06T13:58:58.583Z] DEBUG [4328]  : Reading config file: /etc/elasticbeanstalk/.aws-eb-stack.properties
+[2015-11-06T13:58:58.583Z] DEBUG [4328]  : Refreshing metadata..
+[2015-11-06T13:58:58.812Z] DEBUG [4328]  : Refreshed environment metadata.
+[2015-11-06T13:58:58.812Z] DEBUG [4328]  : Retrieving metadata for key: AWS::ElasticBeanstalk::Ext||_ContainerConfigFileContent||commands..
+[2015-11-06T13:58:58.813Z] DEBUG [4328]  : Retrieving metadata for key: AWS::ElasticBeanstalk::Ext||_API||_Commands..
+[2015-11-06T13:58:58.813Z] INFO  [4328]  : Found enabled addons: ["logpublish"].
+[2015-11-06T13:58:58.815Z] INFO  [4328]  : Updating Command definition of addon logpublish.
+[2015-11-06T13:58:58.815Z] DEBUG [4328]  : Loaded definition of Command CMD-AppDeploy.
+[2015-11-06T13:58:58.815Z] INFO  [4328]  : Executing command CMD-AppDeploy activities...
+[2015-11-06T13:58:58.815Z] DEBUG [4328]  : Setting environment variables..
+[2015-11-06T13:58:58.815Z] INFO  [4328]  : Running AddonsBefore for command CMD-AppDeploy...
+[2015-11-06T13:58:58.815Z] DEBUG [4328]  : Running stages of Command CMD-AppDeploy from stage 0 to stage 1...
+[2015-11-06T13:58:58.815Z] INFO  [4328]  : Running stage 0 of command CMD-AppDeploy...
+[2015-11-06T13:58:58.815Z] INFO  [4328]  : Running leader election...
+[2015-11-06T13:58:59.087Z] INFO  [4328]  : Instance is Leader.
+[2015-11-06T13:58:59.087Z] DEBUG [4328]  : Loaded 7 actions for stage 0.
+[2015-11-06T13:58:59.087Z] INFO  [4328]  : Running 1 of 7 actions: InfraWriteConfig...
+[2015-11-06T13:58:59.090Z] INFO  [4328]  : Running 2 of 7 actions: InfraWriteApp1...
+[2015-11-06T13:58:59.090Z] INFO  [4328]  : Running 3 of 7 actions: InfraWriteApp2...
+[2015-11-06T13:58:59.623Z] INFO  [4328]  : Running 4 of 7 actions: EbExtensionPreBuild...
+[2015-11-06T13:59:00.086Z] INFO  [4328]  : Running 5 of 7 actions: AppDeployPreHook...
+[2015-11-06T13:59:03.088Z] INFO  [4328]  : Running 6 of 7 actions: EbExtensionPostBuild...
+[2015-11-06T13:59:03.402Z] INFO  [4328]  : Running 7 of 7 actions: InfraCleanEbextension...
+[2015-11-06T13:59:03.403Z] INFO  [4328]  : Running stage 1 of command CMD-AppDeploy...
+[2015-11-06T13:59:03.403Z] DEBUG [4328]  : Loaded 2 actions for stage 1.
+[2015-11-06T13:59:03.403Z] INFO  [4328]  : Running 1 of 2 actions: AppDeployEnactHook...
+[2015-11-06T13:59:07.892Z] INFO  [4328]  : Running 2 of 2 actions: AppDeployPostHook...
+[2015-11-06T13:59:07.893Z] INFO  [4328]  : Running AddonsAfter for command CMD-AppDeploy...
+[2015-11-06T13:59:07.995Z] INFO  [4328]  : Command CMD-AppDeploy succeeded!
+[2015-11-06T13:59:07.995Z] INFO  [4328]  : Command processor returning results: 
+{"status":"SUCCESS","api_version":"1.0","results":[{"status":"SUCCESS","msg":"","returncode":0,"events":[]}]}
+[2015-11-06T14:01:42.969Z] DEBUG [4610]  : Reading config file: /etc/elasticbeanstalk/.aws-eb-stack.properties
+[2015-11-06T14:01:42.969Z] DEBUG [4610]  : Checking if the command processor should execute...
+[2015-11-06T14:01:42.970Z] DEBUG [4610]  : Checking whether the command is applicable to instance (i-efd00536)..
+[2015-11-06T14:01:42.970Z] INFO  [4610]  : Command is applicable to this instance (i-efd00536)..
+[2015-11-06T14:01:42.970Z] DEBUG [4610]  : Checking if the received command stage is valid..
+[2015-11-06T14:01:42.970Z] INFO  [4610]  : No stage_num in command. Valid stage..
+[2015-11-06T14:01:42.970Z] INFO  [4610]  : Received command CMD-TailLogs: {"execution_data":"{\"aws_access_key_id\":\"ASIAIDSKSJF4JDY5EZSA\",\"signature\":\"PxxHEWIgV3J1S4HbH3KHBS9DHlE=\",\"security_token\":\"AQoDYXdzEF8asAI0p0y1BCZacjmg72FeM6IfMzucKcrMmgdX1ZTu\\\/33kHNoTZDkCB\\\/DqqotCFtSF+qbJg1rHu6ldvs+VAKbke71wJgXLv9ghOJ1Nam\\\/Tj+YqcF\\\/nvJOQH1RdRodtKs3kGyb2XcysklGBdRAy3cDUO7wddjVSn8W6vExdIeycvZmKVaxvda30xbQp9IUGnx80\\\/FVMrvZ4VQkRzzPgTzakwvP6WlLsGd7l3ISdXeOJR0LALVNxQVfva74IpFgQjBASZA7LWPrcGonpSbiMAN+GWE+U\\\/6hKZBLVpCRDKC1dHkf233c419c\\\/0DqsyY37F5SLgeKllCnfuAsofA9TM7u3ztnLauICPBov7\\\/9\\\/MTaVHRIA7WmCb8BDlxExnLG+xMxKRAidPSr+s7e0MfWCS5k6k0GqIMTl8rEF\",\"policy\":\"eyJleHBpcmF0aW9uIjoiMjAxNS0xMS0wNlQxNDozMTo0MC45NzhaIiwiY29uZGl0aW9ucyI6W1sic3RhcnRzLXdpdGgiLCIkeC1hbXotbWV0YS10aW1lX3N0YW1wIiwiIl0sWyJzdGFydHMtd2l0aCIsIiR4LWFtei1tZXRhLXB1Ymxpc2hfbWVjaGFuaXNtIiwiIl0sWyJzdGFydHMtd2l0aCIsIiRrZXkiLCJyZXNvdXJjZXNcL2Vudmlyb25tZW50c1wvbG9nc1wvIl0sWyJzdGFydHMtd2l0aCIsIiR4LWFtei1tZXRhLWJhdGNoX2lkIiwiIl0sWyJzdGFydHMtd2l0aCIsIiR4LWFtei1tZXRhLWZpbGVfbmFtZSIsIiJdLFsic3RhcnRzLXdpdGgiLCIkeC1hbXotc2VjdXJpdHktdG9rZW4iLCIiXSxbInN0YXJ0cy13aXRoIiwiJENvbnRlbnQtVHlwZSIsIiJdLFsiZXEiLCIkYnVja2V0IiwiZWxhc3RpY2JlYW5zdGFsay11cy13ZXN0LTItMDQxOTA0MzUxOTk2Il0sWyJlcSIsIiRhY2wiLCJwcml2YXRlIl1dfQ==\"}","instance_ids":["i-efd00536"],"data":"e779594c-848e-11e5-948f-f10c7f3b51c1","command_name":"CMD-TailLogs","api_version":"1.0","resource_name":"AWSEBAutoScalingGroup","request_id":"e779594c-848e-11e5-948f-f10c7f3b51c1","command_timeout":"600"}
+[2015-11-06T14:01:42.971Z] INFO  [4610]  : Command processor should execute command.
+[2015-11-06T14:01:42.971Z] DEBUG [4610]  : Storing current stage..
+[2015-11-06T14:01:42.971Z] DEBUG [4610]  : Stage_num does not exist. Not saving null stage. Returning..
+[2015-11-06T14:01:42.971Z] INFO  [4610]  : Executing CMD-TailLogs - stage 
+[2015-11-06T14:01:42.971Z] INFO  [4610]  : Executing command: CMD-TailLogs...
+[2015-11-06T14:01:42.971Z] DEBUG [4610]  : Reading config file: /etc/elasticbeanstalk/.aws-eb-stack.properties
+[2015-11-06T14:01:42.971Z] DEBUG [4610]  : Refreshing metadata..
+[2015-11-06T14:01:43.200Z] DEBUG [4610]  : Refreshed environment metadata.
+[2015-11-06T14:01:43.201Z] DEBUG [4610]  : Retrieving metadata for key: AWS::ElasticBeanstalk::Ext||_ContainerConfigFileContent||commands..
+[2015-11-06T14:01:43.201Z] DEBUG [4610]  : Retrieving metadata for key: AWS::ElasticBeanstalk::Ext||_API||_Commands..
+[2015-11-06T14:01:43.202Z] INFO  [4610]  : Found enabled addons: ["logpublish"].
+[2015-11-06T14:01:43.203Z] INFO  [4610]  : Updating Command definition of addon logpublish.
+[2015-11-06T14:01:43.203Z] DEBUG [4610]  : Loaded definition of Command CMD-TailLogs.
+[2015-11-06T14:01:43.203Z] INFO  [4610]  : Executing command CMD-TailLogs activities...
+[2015-11-06T14:01:43.203Z] DEBUG [4610]  : Setting environment variables..
+[2015-11-06T14:01:43.203Z] INFO  [4610]  : Running AddonsBefore for command CMD-TailLogs...
+[2015-11-06T14:01:43.203Z] DEBUG [4610]  : Running stages of Command CMD-TailLogs from stage 0 to stage 0...
+[2015-11-06T14:01:43.203Z] INFO  [4610]  : Running stage 0 of command CMD-TailLogs...
+[2015-11-06T14:01:43.203Z] DEBUG [4610]  : Loaded 1 actions for stage 0.
+[2015-11-06T14:01:43.203Z] INFO  [4610]  : Running 1 of 1 actions: TailLogs...
+
+
+

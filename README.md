@@ -1,17 +1,18 @@
 # wikisonnet
 Automatically generate sonnets from wikipedia
 
-Random notes about heroku:
+scraper/src contains files needed for the scraping phase, while server contains files needed to serve up poems
 
-First you need to move the database to the heroku application. So go to the directory of the app and 
-heroku addons:create heroku-postgresql:hobby-basic
+scraper also needs some of the files in server. I haven't figured out how to make this work yet.
+Because of this, scraper is actually broken for now
 
-Make a db dump
-pg_dump -Fc mydb > db.dump
+To run the server locally, cd to the server directory and run
+python2.7 application.py
 
-Next upload a .dump of the database to amazon s3. Python with tinys3 is great
+You'll also need a file called dbconfig.yml in your server directory. It should look like:
 
-Finally, 
-heroku pg:backups restore 'https://s3.amazonaws.com/me/items/3H0q/mydb.dump' DATABASE_URL
-
-Where obviously the amazonaws link should be replaced with an actual link
+name:
+  database: <database>
+  host: <host>
+  user: <user>
+  password: <password>

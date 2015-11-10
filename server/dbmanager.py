@@ -1,4 +1,3 @@
-import psycopg2
 import hashlib
 import math
 import random
@@ -59,7 +58,7 @@ class MySQLDatabaseConnection:
         cur.execute(query, values)
         res = cur.fetchall()
         cur.close()
-        return res
+        return res[0][0]
 
     def storeTitleForPage(self, pageID, pagetitle, revision, datestring):
         cursor = self.connection.cursor()

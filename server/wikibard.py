@@ -1,5 +1,4 @@
 import dbmanager
-import wordutils
 import urlparse
 import pdb
 import random
@@ -11,6 +10,8 @@ def continuePoem(dbconn, page, links, excludedWord=None, excludedLines=None, pre
     num = 10
 
     t = Timer()
+    previousLine=None
+    rhyme=None
 
     t.begin("setup")
     continues = (nextLine!=None) or (previousLine!=None)
@@ -53,7 +54,7 @@ def continuePoem(dbconn, page, links, excludedWord=None, excludedLines=None, pre
 
     for i in range(len(soft_constraints), -1, -1):
         t.begin("pos-search")
-        lines = lines + dbconn.randomLines(pages=(page,), predigested=False, options=options, brandom=True, num=(num-len(lines)))
+        lines = lines + dbconn.randomLines(pages=(page,), predigested=False, options=options, brandom=False, num=(num-len(lines)))
         if debug_print:
             print "Found " + str(len(lines)) + " lines on the original page"
 
@@ -132,8 +133,8 @@ def safe(str_or_none):
         return ''
     return str_or_none
 
-def iPoem(pageID):
-    dbconn = dbmanager.MySQLDatabaseConnection('wikisonnet', 'william', 'localhost', 'sh4kespeare')
+def iPoem(pageID, db):
+    dbconn = dbmanager.MySQLDatabaseConnection(db["database"], db["user"], db["host"], db["password"])
     startpage = dbconn.pageTitleForPageID(pageID)
 
     print("Welcome to WikiBard")
@@ -228,23 +229,9 @@ def iPoem(pageID):
     statuses[idx] = status
     poem[idx] = lines[0]
     alter[idx] = lines
-    printPoemSoFar(poem, statuses)
 
-    k = 1
-    while 1:
-        k = raw_input("q to quit:")
-        if k == 'q':
-            break
-        elif len(k.split("-")) > 1:
-            idx = int(k.split("-")[0])
-            idx2 = int(k.split("-")[1])
-            poem[idx] = alter[idx][idx2]
-            printPoemSoFar(poem, statuses)
-        elif k == 'db':
-            pdb.set_trace()
-        elif int(k) is not None:
-            k = int(k)
-            print safe(poem[k]['word_m2']) + " " + safe(poem[k]['word_m1']) +" "+ poem[k]['line'] +" "+ safe(poem[k]['word_len']) +" "+ safe(poem[k]['word_len_p1'])
+    return [[y['line'] for y in x] for x in alter]
+    # return reduce(lambda a="", b="":a + "<p>" + b + "</p>", [x['line'] for x in poem])
 
 
 def printRandomPoem():
@@ -261,40 +248,3 @@ def printRandomPoem():
     lines.append(ultimate)
     for line in lines:
         print(line[1])
-
-def printContinuationPoem():
-    compcount = 40
-    dbconn = dbmanager.DatabaseConnection('samtarakajian', 'samtarakajian', 'localhost', '')
-    lines = []
-    for i in range(3):
-        line = dbconn.randomLines()[0]
-        print(line[1])
-        nextLines = dbconn.randomLines(compcount)
-        newlist = sorted(nextLines[:compcount], key=lambda x: wordutils.get_continuation_probability(line[1], x[1]), reverse=True)
-        lineB = newlist[0]
-        print("%d continuation options", len(nextLines))
-        print(lineB[1])
-        nextLines = dbconn.linesRhymingWithLine(line, compcount)
-        newlist = sorted(nextLines[:compcount], key=lambda x: wordutils.get_continuation_probability(lineB[1], x[1]), reverse=True)
-        lineC = newlist[0]
-        print("%d continuation options", len(nextLines))
-        print(lineC[1])
-        nextLines = dbconn.linesRhymingWithLine(lineB, compcount)
-        newlist = sorted(nextLines[:compcount], key=lambda x: wordutils.get_continuation_probability(lineC[1], x[1]), reverse=True)
-        lineD = newlist[0]
-        print("%d continuation options", len(nextLines))
-        print(lineD[1])
-    line = dbconn.randomLines()[0]
-    print(line[1])
-    nextLines = dbconn.linesRhymingWithLine(line, compcount)
-    newlist = sorted(nextLines[:compcount], key=lambda x: wordutils.get_continuation_probability(line[1], x[1]), reverse=True)
-    print("%d continuation options", len(nextLines))
-    print(newlist[0][1])
-
-def printLineWithContinuation(compcount=10):
-    dbconn = dbmanager.DatabaseConnection('samtarakajian', 'samtarakajian', 'localhost', '')
-    line = dbconn.randomLines()[0]
-    nextLines = dbconn.randomLines(compcount)
-    print(line[1])
-    print("Possible continuations:")
-    newlist = sorted(nextLines[:compcount], key=lambda x: wordutils.get_continuation_probability(line[1], x[1]), reverse=True)
