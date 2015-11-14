@@ -78,16 +78,20 @@ def scanPOS(extractor, dbconn):
 
     print "Scan complete!"
 
-def countPages(extractor):
+def countPages(extractor, limit=-1):
     page_idx = 0
-    printerval = 20000
+    printerval = 1000
     togo = printerval
+    t = Timer()
     for ex in extractor:
         page_idx = page_idx + 1
         if togo<=0:
             togo = printerval
             print "Counted " + str(page_idx) + " pages"
         togo = togo - 1
+        if limit>0 and page_idx>limit:
+            break
+    t.printTime()
 
 def scanLinks(extractor, dbconn):
     page_idx = 0
@@ -121,5 +125,23 @@ def scanLinks(extractor, dbconn):
             dbconn.storeInternalLinksForPage(page_id, extractor.canonicalLinksForCurrentPage(), revision_id, datestring)
         except:
             print "Error"
+
+    print "Scan complete!"
+
+def displayCategories(extractor):
+    foundModels = []
+    foundFormats = []
+
+    for ex in extractor:
+        model = extractor.modelForCurrentPage()
+        form = extractor.formatForCurrentPage()
+        if model is not None and model not in foundModels:
+            foundModels.append(model)
+            name = extractor.titleForCurrentPage()
+            print u"Page {} has model {}".format(name, model)
+        if form is not None and form not in foundFormats:
+            foundFormats.append(form)
+            name = extractor.titleForCurrentPage()
+            print u"Page {} has format {}".format(name, form)
 
     print "Scan complete!"

@@ -1,14 +1,14 @@
 import server.dbmanager as dbmanager
 import server.wikibard as wikibard
 import scraper.wikiutils as wikiutils
-import scraper.scanner as scraper
+import scraper.scanner as scanner
 import sys
 
 print "Connecting to local database"
 dbconfig = {'database':'wikisonnet',
             'user':'william',
             'host':'localhost',
-            'password':'sh4kespeare'}
+            'password':'Sh4kespeare'}
 dbconn = dbmanager.MySQLDatabaseConnection(dbconfig["database"], dbconfig["user"], dbconfig["host"], dbconfig["password"])
 
 func = sys.argv[2]
@@ -41,6 +41,10 @@ elif func == 'count':
     print "Counting pages"
     print "Parsing XML..."
     extractor = wikiutils.WikiTextExtractor(sys.argv[1])
-    scanner.countPages(extractor)
+    scanner.countPages(extractor, 10000)
+elif func == 'categorize':
+    print "Displaying all categories"
+    extractor = wikiutils.WikiTextExtractor(sys.argv[1])
+    scanner.displayCategories(extractor)
 
 dbconn.close()

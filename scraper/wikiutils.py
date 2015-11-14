@@ -13,12 +13,21 @@ class WikiTextExtractor:
         self.tree_iterator = etree.iterparse(self.filename, events=('end', 'start-ns'))
         self.nsmap = {}
         self.current_page = None
+        self.pages_to_clear = []
 
     def __iter__(self):
         return self
 
+    def clearPages(self):
+        for p in self.pages_to_clear:
+            p.clear()
+        self.pages_to_clear = []
+
     def next(self):
         if self.current_page is not None:
+            self.pages_to_clear.append(self.current_page)
+            if len(self.pages_to_clear) > 100:
+                self.clearPages()
             self.current_page.clear()
         for event, elem in self.tree_iterator:
             if event=='start-ns':
@@ -28,6 +37,7 @@ class WikiTextExtractor:
                 if ("{" + self.nsmap['default'] + "}" + 'page') == elem.tag:
                     self.current_page = elem
                     return self
+        self.clearPages()
         raise StopIteration()
 
     def page_count(self):
@@ -81,3 +91,25 @@ class WikiTextExtractor:
     def titleForCurrentPage(self):
         page = self.current_page
         return page.find("default:title", self.nsmap).text
+
+    def modelForCurrentPage(self):
+        page = self.current_page
+        return page.find('default:revision', self.nsmap).find('default:model', self.nsmap).text
+
+    def formatForCurrentPage(self):
+        page = self.current_page
+        return page.find('default:revision', self.nsmap).find('default:format', self.nsmap).text
+
+    def contributorNameForCurrentPage(self):
+        page = self.current_page
+        contributor = page.find('default:revision', self.nsmap).find('default:contributor', self.nsmap)
+        if contributor is not None:
+            return contributor.find('default:username', self.nsmap).text
+        return None
+
+    def contributorIDForCurrentPage(self):
+        page = self.current_page
+        contributor = page.find('default:revision', self.nsmap).find('default:contributor', self.nsmap)
+        if contributor is not None:
+            return contributor.find('default:id', self.nsmap).text
+        return None
