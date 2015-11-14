@@ -1,14 +1,15 @@
+import server.dbmanager as dbmanager
+import server.wikibard as wikibard
+import scraper.wikiutils as wikiutils
+import scraper.scanner as scraper
 import sys
-sys.path.append("../../server")
-
-import dbmanager
-import wikiutils
-import sys
-import scanner
-import wikibard
 
 print "Connecting to local database"
-dbconn = dbmanager.MySQLDatabaseConnection('wikisonnet', 'william', 'localhost', 'sh4kespeare')
+dbconfig = {'database':'wikisonnet',
+            'user':'william',
+            'host':'localhost',
+            'password':'sh4kespeare'}
+dbconn = dbmanager.MySQLDatabaseConnection(dbconfig["database"], dbconfig["user"], dbconfig["host"], dbconfig["password"])
 
 func = sys.argv[2]
 
@@ -31,11 +32,11 @@ elif func == 'ibard':
     print "Interactive poem test:"
     f = sys.argv[1]
     if sys.argv[1]=="random":
-        f = dbconn.randomIndexedPage()[0][0]
+        f = dbconn.randomIndexedPage()
     else:
         f = dbconn.pageIDForPageTitle(f)
     # wikibard.iPoem("en.wikipedia.org/wiki/" + f)
-    wikibard.iPoem(f)
+    wikibard.iPoem(f, dbconfig, debug_print=True)
 elif func == 'count':
     print "Counting pages"
     print "Parsing XML..."

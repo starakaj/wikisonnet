@@ -1,3 +1,4 @@
+--allow-all-external
 Flask==0.10.1
 Flask-Cors==2.1.2
 iso8601==0.1.11

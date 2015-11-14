@@ -1,4 +1,5 @@
-import dbmanager
+import server.dbmanager as dbmanager
+from server.benchmarking import Timer
 import wikiutils
 import wordutils
 import mwparserfromhell
@@ -6,7 +7,6 @@ import textblob
 import time
 import multiprocessing as mp
 from pattern.en import parse
-from benchmarking import Timer
 
 def findIambsForPages(ptext, pageID):
     iambic_runs = []

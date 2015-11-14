@@ -1,10 +1,10 @@
+from server.benchmarking import Timer
 import random
 import re
 import nltk
 import operator
 from textblob import TextBlob
 from pattern.en import parse
-from benchmarking import Timer
 
 from nltk.util import ngrams
 from nltk.corpus import cmudict

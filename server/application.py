@@ -1,4 +1,4 @@
-from flask import Flask, abort, jsonify
+from flask import Flask, abort, jsonify, request
 import dbmanager
 import wikibard
 from  werkzeug.debug import get_current_traceback
@@ -15,15 +15,13 @@ except Exception, e:
 # Change this if you'd like to use a local database or something
 dbconfig = databases['amazon']
 
-# print a nice greeting.
-def say_hello(username = "World"):
-    return '<p>Hello %s!</p>\n' % username
-
 def random_page():
-
     db = dbmanager.MySQLDatabaseConnection(dbconfig["database"], dbconfig["user"], dbconfig["host"], dbconfig["password"])
     pageID = db.randomIndexedPage()
     return db.pageTitleForPageID(pageID)
+
+def say_hello(username = "World"):
+    return '<p>Hello %s!</p>\n' % username
 
 # some bits of text for the page.
 header_text = '''
@@ -47,25 +45,25 @@ application.add_url_rule('/api/v1/random', 'random', (lambda:
     jsonify(title=random_page())))
 
 # poem writing rule
-def poem_page(wiki):
+def poem_page(wiki, sloppy=False):
     try:
         db = dbmanager.MySQLDatabaseConnection(dbconfig["database"], dbconfig["user"], dbconfig["host"], dbconfig["password"])
         pageID = db.pageIDForPageTitle(wiki)
         if pageID is None:
             return {"error":"No page with name " + wiki}
-        return wikibard.iPoem(pageID, dbconfig)
+        return wikibard.iPoem(pageID, dbconfig, sloppy=sloppy)
     except Exception, e:
         track = get_current_traceback(False, skip=1, show_hidden_frames=True)
         track.log()
         return str(track.render_summary())
 
-application.add_url_rule('/api/v1/compose/<wiki>', 'compose', (lambda wiki:
-    jsonify(poem=poem_page(wiki))))
-
-# add a rule when the page is accessed with a name appended to the site
-# URL.
-application.add_url_rule('/<username>', 'hello', (lambda username:
-    header_text + say_hello(username) + home_link + footer_text))
+@application.route('/api/v1/compose/<wiki>', methods=['GET'])
+def compose(wiki):
+    if 'sloppy' in request.args:
+        poem = poem_page(wiki, sloppy=request.args['sloppy'])
+    else:
+        poem = poem_page(wiki)
+    return jsonify(poem=poem)
 
 # run the app.
 if __name__ == "__main__":

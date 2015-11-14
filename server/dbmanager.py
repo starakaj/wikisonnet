@@ -3,7 +3,10 @@ import math
 import random
 import mysql.connector
 import iso8601
+import json
 from benchmarking import Timer
+
+optimized = False
 
 def digest(text):
     m = hashlib.md5()
@@ -40,10 +43,12 @@ def queryWithAddedWhereAppend(query, phrase, valueList, appendedList=None):
 
 class MySQLDatabaseConnection:
     def __init__(self, dbname, user, host, password):
-        self.dbname = dbname;
-        self.user = user;
-        self.host = host;
+        self.dbname = dbname
+        self.user = user
+        self.host = host
         self.connection = mysql.connector.connect(user=user, password=password, host=host, database=dbname, charset='utf8', use_unicode=True)
+        self.statement = None
+        self.execution_time = 0
 
     def close(self):
         if self.connection:
@@ -168,12 +173,26 @@ class MySQLDatabaseConnection:
         values = (page_title,)
         cursor.execute(query, values)
         res = cursor.fetchall()
+        cursor.close()
         if len(res) is not 0:
             pageID = res[0][0]
+            return pageID
         else:
-            pageID = None
-        cursor.close()
-        return pageID
+            return None
+        # query = """SELECT redirect_title FROM redirects WHERE page_id=%s"""
+        # values = (pageID,)
+        # cursor.execute(query, values)
+        # res = cursor.fetchall()
+        # if len(res) is not 0:
+        #     query = """SELECT page_id FROM page_titles WHERE BINARY(page_title) = %s"""
+        #     values = (res[0][0],)
+        #     res = cursor.fetchall()
+        #     if len(res) is not 0:
+        #         pageID = res[0][0]
+        #     else:
+        #         return None
+        # cursor.close()
+        # return pageID
 
     def pageTitleForPageID(self, pageID):
         cursor = self.connection.cursor()
@@ -239,6 +258,8 @@ class MySQLDatabaseConnection:
         query = """SELECT * FROM iambic_lines"""
         valueList = [];
         continuing_where = False
+        pos_prev_options = ["pos_0", "pos_1", "pos_m1", "pos_m2"]
+        pos_next_options = ["pos_len_m2", "pos_len_m1", "pos_len", "pos_len_p1"]
 
         excludedWord=None
         leadChunk=None
@@ -266,8 +287,6 @@ class MySQLDatabaseConnection:
             query = queryWithAddedWhere(query, """ starts = %s""", valueList, starts)
         if (ends!=None):
             query = queryWithAddedWhere(query, """ ends = %s""", valueList, ends)
-        if rhyme:
-            query = queryWithAddedWhere(query, """ rhyme_part = %s""", valueList, rhyme)
         if pages:
             if len(pages) is 1:
                 query = queryWithAddedWhere(query, """ page_id = %s""", valueList, pages[0])
@@ -284,14 +303,23 @@ class MySQLDatabaseConnection:
             else:
                 format_strings = ','.join(['%s'] * len(excludedLines))
                 query = queryWithAddedWhereAppend(query, """ id NOT IN (%s)""" % format_strings, valueList, list(excludedLines))
-        if "pos_0" in options:
-            query = queryWithAddedWhere(query, """ pos_0 = %s""", valueList, options["pos_0"])
-        if "pos_1" in options:
-            query = queryWithAddedWhere(query, """ pos_0 = %s""", valueList, options["pos_1"])
-        if "pos_m2" in options:
-            query = queryWithAddedWhere(query, """ pos_m2 = %s""", valueList, options["pos_m2"])
-        if "pos_m1" in options:
-            query = queryWithAddedWhere(query, """ pos_m1 = %s""", valueList, options["pos_m1"])
+
+        if optimized:
+            if any(p in pos_prev_options for p in options):
+                (col, key) = columnAndKeyForPOSColumnsWithRhyme(rhyme, {p:options[p] for p in filter(lambda x: x in options, pos_prev_options)}, True)
+                query = queryWithAddedWhere(query, """ """ + col + """ = %s""", valueList, key)
+            elif any(p in pos_next_options for p in options):
+                (col, key) = columnAndKeyForPOSColumnsWithRhyme(rhyme, {p:options[p] for p in filter(lambda x: x in options, pos_prev_options)}, False)
+                query = queryWithAddedWhere(query, """ """ + col + """ = %s""", valueList, key)
+            else:
+                if rhyme:
+                    query = queryWithAddedWhere(query, """ rhyme_part = %s""", valueList, rhyme)
+        else:
+            for p in pos_prev_options + pos_next_options:
+                if p in options:
+                    query = queryWithAddedWhere(query, """ """ + p + """ = %s""", valueList, options[p])
+            if rhyme:
+                query = queryWithAddedWhere(query, """ rhyme_part = %s""", valueList, rhyme)
         ### WHERE ###
 
         if brandom:
@@ -303,10 +331,14 @@ class MySQLDatabaseConnection:
         t.end("prepare")
 
         t.begin("execute")
+
+        execute_timer = Timer()
         cur.execute(query, values)
+        self.statement = cur.statement
         # print cur.statement
         res = cur.fetchall()
         cur.close()
         t.end("execute")
+        self.execution_time = execute_timer.elapsed()
         # t.printTime()
         return res

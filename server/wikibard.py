@@ -4,106 +4,90 @@ import pdb
 import random
 from benchmarking import Timer
 
-debug_print = False
+n2p = {
+    "pos_len_m1":"pos_m1",
+    "pos_len":"pos_0",
+    "pos_len_m2":"pos_m2",
+    "pos_len_p1":"pos_1"
+    }
 
-def continuePoem(dbconn, page, links, excludedWord=None, excludedLines=None, previousLine=None, nextLine=None, continues=False, ends=False, starts=False, rhyme=None):
-    num = 10
+p2n = {n2p[k]:k for k in n2p}
 
-    t = Timer()
-    previousLine=None
-    rhyme=None
-
-    t.begin("setup")
-    continues = (nextLine!=None) or (previousLine!=None)
-    if continues:
-        num = 10
-    status = {}
-    lines = []
-    soft_constraints_previous = ["ends", "pos_m1", "pos_0", "pos_m2", "pos_1"]
-    soft_constraints_next = ["pos_len_m1", "pos_len", "pos_len_m2", "pos_len_p1"]
-
-    options = {"excludedWord":excludedWord, "excludedLines":excludedLines, "starts":starts, "ends":ends, "rhyme":rhyme}
-    ## If we're continuing, then we need to look at the previous line to know
-    ## what parts of speech are valid in our continuation.
+def initializeOptionsAndConstraints(options, previousLine=None, nextLine=None):
+    pconstraints = ["pos_1", "pos_m2", "pos_0", "pos_m1"]
+    nconstraints = [p2n[k] for k in pconstraints]
 
     if previousLine:
-        if previousLine["pos_len_m1"] is not None:
-            options["pos_m1"] = previousLine["pos_len_m1"] ## close_pos1
-        if previousLine["pos_len"] is not None:
-            options["pos_0"] = previousLine["pos_len"] ## pos_p1
-        if previousLine["pos_len_m2"] is not None:
-            options["pos_m2"] = previousLine["pos_len_m2"] ## close_pos2
-        if previousLine["pos_len_p1"] is not None:
-            options["pos_1"] = previousLine["pos_len_p1"] ## pos_p2
+        for k in pconstraints:
+            if previousLine[p2n[k]] is not None:
+                options[k] = previousLine[p2n[k]]
+        return (options, pconstraints)
+
     if nextLine:
-        options["pos_len_m1"] = nextLine["pos_m1"] ## pos_m1
-        options["pos_len"] = nextLine["pos_0"] ## open_pos1
-        options["pos_len_m2"] = nextLine["pos_m2"] ## pos_m2
-        options["pos_len_p1"] = nextLine["pos_1"] ## open_pos2
+        for k in nconstraints:
+            if nextLine[n2p[k]] is not None:
+                options[k] = nextLine[n2p[k]]
+        return (options, nconstraints)
+    return (options, [])
 
-    if previousLine and nextLine:
-        soft_constraints = [soft_constraints_next[i/2] if i%2 else soft_constraints_previous[i/2] for i in range(len(soft_constraints_next)*2)]
-    elif previousLine:
-        soft_constraints = soft_constraints_previous
-    elif nextLine:
-        soft_constraints = soft_constraints_next
-    else:
-        soft_constraints = []
+def continuePoem(dbconn, page, links, excludedWord=None, excludedLines=None, previousLine=None, nextLine=None, ends=False, starts=False, rhyme=None, debug_print=False, sloppy=False):
 
-    t.end("setup")
+    status = {}
+    lines = []
+    num = 10
 
-    for i in range(len(soft_constraints), -1, -1):
-        t.begin("pos-search")
+    if sloppy:
+        previousLine = None
+        nextLine = None
+        rhyme = None
+
+    if previousLine is not None and nextLine is not None:
+        print "Supporting double constrained lines is not supported"
+        return None
+
+    options = {"excludedWord":excludedWord, "excludedLines":excludedLines, "starts":starts, "ends":ends, "rhyme":rhyme}
+    (options, soft_constraints) = initializeOptionsAndConstraints(options, previousLine, nextLine)
+
+    print options
+    print soft_constraints
+
+    total_runs = len(soft_constraints)+1
+    for _ in range(total_runs):
         lines = lines + dbconn.randomLines(pages=(page,), predigested=False, options=options, brandom=False, num=(num-len(lines)))
-        if debug_print:
-            print "Found " + str(len(lines)) + " lines on the original page"
+        print dbconn.statement
 
         # If there are no good continuations on this page, look on pages connected to this page
         if len(lines) < num:
             more_lines = dbconn.randomLines(pages=links, predigested=True, options=options, brandom=False, num=(num-len(lines)))
             lines = lines + more_lines
-
-        if debug_print:
-            print "Found " + str(len(lines)) + " on links to that page"
+            print dbconn.statement
 
         # Still no good continuations? Look on the whole corpus
-        if len(lines)==0:
-            if len(lines) < num:
-                more_lines = dbconn.randomLines(pages=None, options=options, brandom=False, num=(num-len(lines)))
-                lines = lines + more_lines
+        if len(lines) < num:
+            more_lines = dbconn.randomLines(pages=None, options=options, brandom=False, num=(num-len(lines)))
+            lines = lines + more_lines
+            print dbconn.statement
 
-        if continues:
-            status["continuation_quality"] = i
-        t.end("pos-search")
         # Still nothing? Maybe we should relax our constraints
-        if len(lines)<10:
-            if i!=0:
-                options.pop(soft_constraints[i-1], None)
+        if len(lines)<num and len(soft_constraints) is not 0:
+            options.pop(soft_constraints[0], None)
+            soft_constraints = soft_constraints[1:]
         else:
-
-            # Make sure your choices have a reasonable number of rhymes
-            t.begin("rhyme-count")
-            if rhyme is None:
-                rhyme_counts = map(lambda x:(dbconn.rhymeCountForRhyme(x['word'], x['rhyme_part'])), lines)
-                total_rhymes = sum(rhyme_counts)
-                total_rhymes = total_rhymes / len(lines)
-                lines = filter(lambda x: dbconn.rhymeCountForRhyme(x['word'], x['rhyme_part']) >= total_rhymes/2, lines)
-                lines = sorted(lines, key = lambda x: random.random() )
-
-                ## lines = sorted(lines, key=lambda x: dbconn.rhymeCountForRhyme(x['word'], x['rhyme_part']), reverse=True)
-                if debug_print:
-                    for l in lines:
-                        print l['line'] + " " + str(dbconn.rhymeCountForRhyme(l['word'], l['rhyme_part']))
-                    print(" ")
-            t.end("rhyme-count")
+            if previousLine is not None or nextLine is not None:
+                status["continuation_quality"] = len(soft_constraints)
             break
 
-    # if continues:
-    #     lines.sort(key=lambda x: dbconn.continuationScoreForLine(x, poem[nindex]), reverse=True)
-
     if len(lines)==0:
-        pdb.set_trace()
-    # t.printTime()
+        return None
+
+    # Make sure your choices have a reasonable number of rhymes
+    if rhyme is None:
+        rhyme_counts = map(lambda x:(dbconn.rhymeCountForRhyme(x['word'], x['rhyme_part'])), lines)
+        total_rhymes = sum(rhyme_counts)
+        total_rhymes = total_rhymes / len(lines)
+        lines = filter(lambda x: dbconn.rhymeCountForRhyme(x['word'], x['rhyme_part']) >= total_rhymes/2, lines)
+        lines = sorted(lines, key = lambda x: random.random() )
+
     return (lines, status)
 
 def chooseContinuation(lines, count, poem):
@@ -133,7 +117,7 @@ def safe(str_or_none):
         return ''
     return str_or_none
 
-def iPoem(pageID, db):
+def iPoem(pageID, db, debug_print=False, sloppy=False):
     dbconn = dbmanager.MySQLDatabaseConnection(db["database"], db["user"], db["host"], db["password"])
     startpage = dbconn.pageTitleForPageID(pageID)
 
@@ -143,6 +127,7 @@ def iPoem(pageID, db):
     print("Composing a sonnet starting on " + startpage)
     print(" ")
 
+    t = Timer()
     links = dbconn.pagesLinkedFromPageID(pageID)
     poem = [None for x in range(14)]
     alter = [None for x in range(14)]
@@ -155,9 +140,8 @@ def iPoem(pageID, db):
     for i in range(3):
 
         # First line
-        # pdb.set_trace()
         idx = i*4
-        (lines,status) = continuePoem(dbconn, pageID, links, previousLine=previousLine, starts=previousWasEnd, excludedLines=tuple(excludedLinesList))
+        (lines,status) = continuePoem(dbconn, pageID, links, previousLine=previousLine, starts=previousWasEnd, excludedLines=tuple(excludedLinesList), debug_print=debug_print, sloppy=sloppy)
         previousWasEnd = lines[0]['ends']
         statuses[idx] = status
         poem[idx] = lines[0]
@@ -165,12 +149,13 @@ def iPoem(pageID, db):
         excludedLinesList.append(lines[0]['id'])
         if debug_print:
             print lines[0]['line']
+            print " "
 
         # Second line
         idx = i*4+1
         excludedWord = poem[idx-1]['word']
         previousLine = poem[idx-1] if not previousWasEnd else None
-        (lines,status) = continuePoem(dbconn, pageID, links, starts=previousWasEnd, previousLine=previousLine, excludedWord=excludedWord, excludedLines=tuple(excludedLinesList))
+        (lines,status) = continuePoem(dbconn, pageID, links, starts=previousWasEnd, previousLine=previousLine, excludedWord=excludedWord, excludedLines=tuple(excludedLinesList), debug_print=debug_print, sloppy=sloppy)
         statuses[idx] = status
         if len(lines)==0:
             printPoemSoFar(poem, statuses)
@@ -180,12 +165,13 @@ def iPoem(pageID, db):
         excludedLinesList.append(lines[0]['id'])
         if debug_print:
             print lines[0]['line']
+            print " "
 
         # Third line
         idx = i*4+2
         excludedWord = poem[idx-2]['word']
         previousLine = poem[idx-1] if not previousWasEnd else None
-        (lines,status) = continuePoem(dbconn, pageID, links, starts=previousWasEnd, previousLine=previousLine, rhyme=poem[idx-2]['rhyme_part'], excludedWord=excludedWord, excludedLines=tuple(excludedLinesList))
+        (lines,status) = continuePoem(dbconn, pageID, links, starts=previousWasEnd, previousLine=previousLine, rhyme=poem[idx-2]['rhyme_part'], excludedWord=excludedWord, excludedLines=tuple(excludedLinesList), debug_print=debug_print, sloppy=sloppy)
         statuses[idx] = status
         if len(lines)==0:
             printPoemSoFar(poem, statuses)
@@ -195,12 +181,13 @@ def iPoem(pageID, db):
         excludedLinesList.append(lines[0]['id'])
         if debug_print:
             print lines[0]['line']
+            print " "
 
         # Last line
         idx = i*4+3
         excludedWord = poem[idx-2]['word']
         previousLine = poem[idx-1] if not previousWasEnd else None
-        (lines,status) = continuePoem(dbconn, pageID, links, starts=previousWasEnd, ends=True, previousLine=previousLine, rhyme=poem[idx-2]['rhyme_part'], excludedWord=excludedWord, excludedLines=tuple(excludedLinesList))
+        (lines,status) = continuePoem(dbconn, pageID, links, starts=previousWasEnd, ends=True, previousLine=previousLine, rhyme=poem[idx-2]['rhyme_part'], excludedWord=excludedWord, excludedLines=tuple(excludedLinesList), debug_print=debug_print, sloppy=sloppy)
         statuses[idx] = status
         if len(lines)==0:
             printPoemSoFar(poem, statuses)
@@ -211,26 +198,41 @@ def iPoem(pageID, db):
         excludedLinesList.append(lines[0]['id'])
         if debug_print:
             print lines[0]['line']
+            print " "
 
     # Ultimate line
     idx=13
-    (lines,status) = continuePoem(dbconn, pageID, links, ends=True, starts=False, excludedLines=tuple(excludedLinesList))
+    (lines,status) = continuePoem(dbconn, pageID, links, ends=True, starts=False, excludedLines=tuple(excludedLinesList), debug_print=debug_print, sloppy=sloppy)
     statuses[idx] = status
     poem[idx] =lines[0]
     alter[idx] = lines
     excludedLinesList.append(lines[0]['id'])
     if debug_print:
         print lines[0]['line']
+        print " "
 
     # Penultimate line
     idx=12
     excludedWord = poem[idx+1]['word']
-    (lines,status) = continuePoem(dbconn, pageID, links, previousLine=None, nextLine=poem[idx+1], starts=previousWasEnd, ends=False, rhyme=poem[idx+1]['rhyme_part'], excludedWord=excludedWord, excludedLines=tuple(excludedLinesList))
+    (lines,status) = continuePoem(dbconn, pageID, links, previousLine=None, nextLine=poem[idx+1], starts=previousWasEnd, ends=False, rhyme=poem[idx+1]['rhyme_part'], excludedWord=excludedWord, excludedLines=tuple(excludedLinesList), debug_print=debug_print, sloppy=sloppy)
     statuses[idx] = status
     poem[idx] = lines[0]
     alter[idx] = lines
+    if debug_print:
+        print lines[0]['line']
+        print " "
 
-    return [[y['line'] for y in x] for x in alter]
+
+    if debug_print:
+        print " "
+        print "A sonnet on: " + startpage
+        print " "
+        print "Total runtime: " + str(t.elapsed())
+        print " "
+        for l in poem:
+            print l['line']
+    rlines = [[y['line'] for y in x] for x in alter]
+    return rlines
     # return reduce(lambda a="", b="":a + "<p>" + b + "</p>", [x['line'] for x in poem])
 
 
