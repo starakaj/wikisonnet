@@ -1,4 +1,4 @@
-from lxml import etree
+import lxml.etree as etree
 import mwparserfromhell
 import re
 
@@ -10,34 +10,30 @@ def make_canonical(link):
 class WikiTextExtractor:
     def __init__(self, filename):
         self.filename = filename
-        self.tree_iterator = etree.iterparse(self.filename, events=('end', 'start-ns'))
         self.nsmap = {}
+        self.initializeDefaultNamespace()
+        self.tree_iterator = etree.iterparse(self.filename, events=('end',), tag=("{" + self.nsmap['default'] + "}" + 'page'))
         self.current_page = None
         self.pages_to_clear = []
 
     def __iter__(self):
         return self
 
-    def clearPages(self):
-        for p in self.pages_to_clear:
-            p.clear()
-        self.pages_to_clear = []
+    # Scans until it finds the empty namespace, then stops
+    def initializeDefaultNamespace(self):
+        it = etree.iterparse(self.filename, events=('start-ns',))
+        for _, elem in it:
+            key = 'default' if elem[0] == '' else elem[0]
+            self.nsmap[key] = elem[1]
+            if key=='default':
+                break
 
     def next(self):
         if self.current_page is not None:
-            self.pages_to_clear.append(self.current_page)
-            if len(self.pages_to_clear) > 100:
-                self.clearPages()
             self.current_page.clear()
-        for event, elem in self.tree_iterator:
-            if event=='start-ns':
-                key = 'default' if elem[0] == '' else elem[0]
-                self.nsmap[key] = elem[1]
-            if event=='end':
-                if ("{" + self.nsmap['default'] + "}" + 'page') == elem.tag:
-                    self.current_page = elem
-                    return self
-        self.clearPages()
+        for _, elem in self.tree_iterator:
+            self.current_page = elem
+            return self
         raise StopIteration()
 
     def page_count(self):

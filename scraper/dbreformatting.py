@@ -1,4 +1,6 @@
 import mysql.connector
+import hashlib
+import json
 
 def updateLinkCounts(commit_interval=1000, print_interval=1000):
     read_conn = mysql.connector.connect(user="william", password="sh4kespeare", host="localhost", database="wikisonnet", charset='utf8', use_unicode=True)
@@ -111,3 +113,37 @@ def columnAndKeyForPOSColumnsWithRhyme(rhyme, columns={}, isPrevious=True):
     columns["rhyme_part"] = rhyme
     key = ("""prev""" if isPrevious else """next""") + """key""" + str(len(columns)-1)
     return (key, hashlib.sha1(json.dumps(columns, sort_keys=True)).digest())
+
+def columnsDictToSHA(columns):
+    return hashlib.sha1(json.dumps(columns, sort_keys=True)).digest()
+
+def countTrailingPOS(commit_interval=1000, print_interval=1000):
+    read_conn = mysql.connector.connect(user="william", password="Sh4kespeare", host="localhost", database="wikisonnet", charset='utf8', use_unicode=True)
+    write_conn = mysql.connector.connect(user="william", password="Sh4kespeare", host="localhost", database="wikisonnet", charset='utf8', use_unicode=True)
+    read_cursor = read_conn.cursor(dictionary=True)
+    write_cursor = write_conn.cursor()
+    query = """SELECT pos_len_m2, pos_len_m1, pos_len, pos_len_p1 FROM iambic_lines"""
+    read_cursor.execute(query)
+    written = 0
+    toWrite = read_cursor.rowcount
+    commit_timer = commit_interval
+    print_timer = print_interval
+    for row in read_cursor:
+        query = """INSERT INTO trailing_pos_counts (tail_sha, pos_len_m2, pos_len_m1, pos_len, pos_len_p1, count) VALUES (%s, %s, %s, %s, %s, 1) ON DUPLICATE KEY UPDATE count=count+1;"""
+        values = (columnsDictToSHA(row), row['pos_len_m2'], row['pos_len_m1'], row['pos_len'], row['pos_len_p1'])
+        write_cursor.execute(query, values)
+
+        written = written+1
+
+        print_timer = print_timer-1
+        if print_timer==0:
+            print "Updated {} of {}".format(written, toWrite)
+            print_timer = print_interval
+        commit_timer = commit_timer-1
+        if commit_timer==0:
+            write_conn.commit()
+            commit_timer = commit_interval
+    read_cursor.close()
+    write_conn.commit()
+    read_conn.close()
+    write_conn.close()
