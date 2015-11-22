@@ -3,13 +3,14 @@ import server.wikibard as wikibard
 import scraper.wikiutils as wikiutils
 import scraper.scanner as scanner
 import sys
+import codecs
 
 print "Connecting to local database"
 dbconfig = {'database':'wikisonnet',
             'user':'william',
             'host':'localhost',
             'password':'Sh4kespeare'}
-dbconn = dbmanager.MySQLDatabaseConnection(dbconfig["database"], dbconfig["user"], dbconfig["host"], dbconfig["password"])
+# dbconn = dbmanager.MySQLDatabaseConnection(dbconfig["database"], dbconfig["user"], dbconfig["host"], dbconfig["password"])
 
 func = sys.argv[2]
 
@@ -46,5 +47,11 @@ elif func == 'categorize':
     print "Displaying all categories"
     extractor = wikiutils.WikiTextExtractor(sys.argv[1])
     scanner.displayCategories(extractor)
+elif func == 'topicPrep':
+    print 'Formatting output for topic extraction'
+    extractor = wikiutils.WikiTextExtractor(sys.argv[1])
+    ofile  = codecs.open(sys.argv[3], 'w', 'utf-8')
+    scanner.prepareInputsForTopicModelling(extractor, ofile)
+    ofile.close()
 
-dbconn.close()
+# dbconn.close()

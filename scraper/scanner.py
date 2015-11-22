@@ -7,6 +7,7 @@ import textblob
 import time
 import multiprocessing as mp
 from pattern.en import parse
+import re
 
 def findIambsForPages(ptext, pageID):
     iambic_runs = []
@@ -145,3 +146,31 @@ def displayCategories(extractor):
             print u"Page {} has format {}".format(name, form)
 
     print "Scan complete!"
+
+def prepareInputsForTopicModelling(extractor, ofile):
+    page_idx = 0
+    for _ in extractor:
+        page_idx = page_idx+1
+        wrote = 0
+
+        ptext = extractor.textForCurrentPage()
+        paragraphs = ptext.split("\n")
+        for paragraph in paragraphs:
+            paragraph = re.sub('\s+', ' ', paragraph)
+            if len(paragraph.split(' ')) < 10:
+                continue
+            blob = textblob.TextBlob(paragraph)
+            for sentence in blob.sentences:
+
+                sen = " ".join(sentence.strip().split())
+                if len(sen.split(' ')) < 3:
+                    continue
+                ofile.write(sen)
+                ofile.write(" ")
+                wrote=1
+
+        if wrote:
+            ofile.write('\n')
+
+        if page_idx > 1000:
+            break
