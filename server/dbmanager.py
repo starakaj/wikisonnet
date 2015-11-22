@@ -5,8 +5,7 @@ import mysql.connector
 import iso8601
 import json
 from benchmarking import Timer
-
-optimized = False
+import scraper.dbreformatting as dbreformatting
 
 def digest(text):
     m = hashlib.md5()
@@ -42,13 +41,20 @@ def queryWithAddedWhereAppend(query, phrase, valueList, appendedList=None):
     return query + phrase
 
 class MySQLDatabaseConnection:
-    def __init__(self, dbname, user, host, password):
+    def __init__(self, dbname, user, host, password, options=None):
         self.dbname = dbname
         self.user = user
         self.host = host
         self.connection = mysql.connector.connect(user=user, password=password, host=host, database=dbname, charset='utf8', use_unicode=True)
         self.statement = None
         self.execution_time = 0
+
+        if options is not None:
+            for k in options:
+                if k == "use_cache":
+                    self.connection.cursor().execute("""SET SESSION query_cache_type=%s""", (options[k],))
+                else:
+                    print 'Ignoring unrecognized option {}'.format(k)
 
     def close(self):
         if self.connection:
@@ -249,17 +255,54 @@ class MySQLDatabaseConnection:
         cursor.close()
         return cnt[0][0]
 
-    def randomLines(self, pages=None, num=1, predigested=False, brandom=False, options=None):
+    def modifiedOptions(self, options):
+        mod_options = {k:options[k] for k in options.keys()}
+        pos_prev_options = ["pos_0", "pos_1", "pos_m1", "pos_m2"]
+        pos_next_options = ["pos_len_m2", "pos_len_m1", "pos_len", "pos_len_p1"]
+        hashed_leading_names = ["leading_2gram", "leading_3gram", "leading_4gram"]
+        hashed_lagging_names = ["lagging_2gram", "lagging_3gram", "lagging_4gram"]
+        pos_config_sets = [{"options":pos_prev_options, "names":hashed_leading_names},
+                            {"options":pos_next_options, "names":hashed_lagging_names}]
+        # pos_option_sets = [pos_prev_options, pos_next_options]
+
+        for pos_config in pos_config_sets:
+
+            pos_options = pos_config["options"]
+            column_names = pos_config["names"]
+
+            # Get the columns that we are going to combine into a precomputed hash for those columns
+            pos_columns = filter(lambda x: x in pos_options, options.keys())
+
+            # Check whether or not there are at least two parts of speech in question
+            if len(pos_columns) >= 2:
+
+                # Get a dictionary for which to compute a hash
+                dict_to_hash = {col:options[col] for col in pos_columns}
+                dict_as_sha = dbreformatting.columnsDictToSHA(dict_to_hash)
+
+                # modify options to include the new keys
+                hashed_column_name = column_names[len(pos_columns) - 2]
+                for p in pos_columns:
+                    mod_options.pop(p)
+                mod_options[hashed_column_name] = dict_as_sha
+
+        return mod_options
+
+    def randomLines(self, pages=None, num=1, predigested=False, brandom=False, optimized=False, options=None):
 
         t = Timer()
+
+        print options
 
         t.begin("prepare")
         cur = self.connection.cursor(dictionary=True) ## DictCursor is best
         query = """SELECT * FROM iambic_lines"""
         valueList = [];
         continuing_where = False
-        pos_prev_options = ["pos_0", "pos_1", "pos_m1", "pos_m2"]
-        pos_next_options = ["pos_len_m2", "pos_len_m1", "pos_len", "pos_len_p1"]
+        if optimized:
+            options = self.modifiedOptions(options)
+            if any([p in options for p in ["leading_2gram", "leading_3gram", "leading_4gram", "lagging_2gram", "lagging_3gram", "lagging_4gram"]]):
+                query = query + """ join pos_hashes on pos_hashes.line_id = iambic_lines.id"""
 
         excludedWord=None
         leadChunk=None
@@ -267,59 +310,29 @@ class MySQLDatabaseConnection:
         starts=None
         ends=None
         rhyme=None
-        if options:
-            for k in options:
-                if k == "excludedWord":
-                    excludedWord = options[k]
-                if k == "excludedLines":
-                    excludedLines = options[k]
-                if k == "leadChunk":
-                    leadChunk = options[k]
-                if k == "starts":
-                    starts = options[k]
-                if k == "ends":
-                    ends = options[k]
-                if k == "rhyme":
-                    rhyme = options[k]
 
         ### Building WHERE clause ###
-        if (starts!=None):
-            query = queryWithAddedWhere(query, """ starts = %s""", valueList, starts)
-        if (ends!=None):
-            query = queryWithAddedWhere(query, """ ends = %s""", valueList, ends)
+        for key in options:
+            if key == "excludedWord":
+                query = queryWithAddedWhere(query, """ word != %s""", valueList, options[key])
+            elif key == "rhyme":
+                query = queryWithAddedWhere(query, """ rhyme_part = %s""", valueList, options[key])
+            elif key == "excludedLines":
+                excludedLines = options[key]
+                if len(excludedLines) is 1:
+                    query = queryWithAddedWhere(query, """ id != %s""", valueList, excludedLines[0])
+                elif len(excludedLines) is not 0:
+                    format_strings = ','.join(['%s'] * len(excludedLines))
+                    query = queryWithAddedWhereAppend(query, """ id NOT IN (%s)""" % format_strings, valueList, list(excludedLines))
+            else:
+                query = queryWithAddedWhere(query, """ """ + key + """ = %s""", valueList, options[key])
+
         if pages:
             if len(pages) is 1:
                 query = queryWithAddedWhere(query, """ page_id = %s""", valueList, pages[0])
             else:
                 format_strings = ','.join(['%s'] * len(pages))
                 query = queryWithAddedWhereAppend(query, """ page_id IN (%s)""" % format_strings, valueList, list(pages))
-        if leadChunk:
-            query = queryWithAddedWhere(query, """ lead_chunk = %s""", valueList, leadChunk)
-        if excludedWord:
-            query = queryWithAddedWhere(query, """ word != %s""", valueList, excludedWord)
-        if excludedLines:
-            if len(excludedLines) is 1:
-                query = queryWithAddedWhere(query, """ id != %s""", valueList, excludedLines[0])
-            else:
-                format_strings = ','.join(['%s'] * len(excludedLines))
-                query = queryWithAddedWhereAppend(query, """ id NOT IN (%s)""" % format_strings, valueList, list(excludedLines))
-
-        if optimized:
-            if any(p in pos_prev_options for p in options):
-                (col, key) = columnAndKeyForPOSColumnsWithRhyme(rhyme, {p:options[p] for p in filter(lambda x: x in options, pos_prev_options)}, True)
-                query = queryWithAddedWhere(query, """ """ + col + """ = %s""", valueList, key)
-            elif any(p in pos_next_options for p in options):
-                (col, key) = columnAndKeyForPOSColumnsWithRhyme(rhyme, {p:options[p] for p in filter(lambda x: x in options, pos_prev_options)}, False)
-                query = queryWithAddedWhere(query, """ """ + col + """ = %s""", valueList, key)
-            else:
-                if rhyme:
-                    query = queryWithAddedWhere(query, """ rhyme_part = %s""", valueList, rhyme)
-        else:
-            for p in pos_prev_options + pos_next_options:
-                if p in options:
-                    query = queryWithAddedWhere(query, """ """ + p + """ = %s""", valueList, options[p])
-            if rhyme:
-                query = queryWithAddedWhere(query, """ rhyme_part = %s""", valueList, rhyme)
         ### WHERE ###
 
         if brandom:
@@ -335,10 +348,10 @@ class MySQLDatabaseConnection:
         execute_timer = Timer()
         cur.execute(query, values)
         self.statement = cur.statement
-        # print cur.statement
+        print cur.statement
         res = cur.fetchall()
         cur.close()
         t.end("execute")
         self.execution_time = execute_timer.elapsed()
-        # t.printTime()
+        t.printTime()
         return res

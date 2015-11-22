@@ -10,7 +10,7 @@ dbconfig = {'database':'wikisonnet',
             'user':'william',
             'host':'localhost',
             'password':'Sh4kespeare'}
-# dbconn = dbmanager.MySQLDatabaseConnection(dbconfig["database"], dbconfig["user"], dbconfig["host"], dbconfig["password"])
+dbconn = dbmanager.MySQLDatabaseConnection(dbconfig["database"], dbconfig["user"], dbconfig["host"], dbconfig["password"])
 
 func = sys.argv[2]
 
@@ -54,4 +54,4 @@ elif func == 'topicPrep':
     scanner.prepareInputsForTopicModelling(extractor, ofile)
     ofile.close()
 
-# dbconn.close()
+dbconn.close()
