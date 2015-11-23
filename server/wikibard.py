@@ -4,6 +4,8 @@ import pdb
 import random
 from benchmarking import Timer
 
+optimized = True
+
 n2p = {
     "pos_len_m1":"pos_m1",
     "pos_len":"pos_0",
@@ -42,29 +44,30 @@ def continuePoem(dbconn, page, links, excludedWord=None, excludedLines=None, pre
         rhyme = None
 
     if previousLine is not None and nextLine is not None:
-        print "Supporting double constrained lines is not supported"
+        print "Double constrained lines are not supported"
         return None
 
-    options = {"excludedWord":excludedWord, "excludedLines":excludedLines, "starts":starts, "ends":ends, "rhyme":rhyme}
+    options = {"excludedLines":excludedLines, "starts":starts, "ends":ends}
+    if rhyme is not None:
+        options["rhyme"] = rhyme
+    if excludedWord is not None:
+        options["excludedWord"] = excludedWord
     (options, soft_constraints) = initializeOptionsAndConstraints(options, previousLine, nextLine)
-
-    print options
-    print soft_constraints
 
     total_runs = len(soft_constraints)+1
     for _ in range(total_runs):
-        lines = lines + dbconn.randomLines(pages=(page,), predigested=False, options=options, brandom=False, num=(num-len(lines)))
+        lines = lines + dbconn.randomLines(pages=(page,), predigested=False, options=options, brandom=False, optimized=optimized, num=(num-len(lines)))
         print dbconn.statement
 
         # If there are no good continuations on this page, look on pages connected to this page
         if len(lines) < num:
-            more_lines = dbconn.randomLines(pages=links, predigested=True, options=options, brandom=False, num=(num-len(lines)))
+            more_lines = dbconn.randomLines(pages=links, predigested=True, options=options, brandom=False, optimized=optimized, num=(num-len(lines)))
             lines = lines + more_lines
             print dbconn.statement
 
         # Still no good continuations? Look on the whole corpus
         if len(lines) < num:
-            more_lines = dbconn.randomLines(pages=None, options=options, brandom=False, num=(num-len(lines)))
+            more_lines = dbconn.randomLines(pages=None, options=options, brandom=False, optimized=optimized, num=(num-len(lines)))
             lines = lines + more_lines
             print dbconn.statement
 

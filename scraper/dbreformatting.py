@@ -147,3 +147,48 @@ def countTrailingPOS(commit_interval=1000, print_interval=1000):
     write_conn.commit()
     read_conn.close()
     write_conn.close()
+
+def populatePOSHashes(commit_interval=1000, print_interval=1000):
+    read_conn = mysql.connector.connect(user="william", password="Sh4kespeare", host="localhost", database="wikisonnet", charset='utf8', use_unicode=True)
+    write_conn = mysql.connector.connect(user="william", password="Sh4kespeare", host="localhost", database="wikisonnet", charset='utf8', use_unicode=True)
+    read_cursor = read_conn.cursor(dictionary=True)
+    write_cursor = write_conn.cursor()
+    query = """SELECT id, pos_m2, pos_m1, pos_0, pos_1, pos_len_m2, pos_len_m1, pos_len, pos_len_p1 FROM iambic_lines"""
+    read_cursor.execute(query)
+    written=0
+    commit_timer = commit_interval
+    print_timer = print_interval
+
+    tasks = {
+        "leading_4gram" : ["pos_m2", "pos_m1", "pos_0", "pos_1"],
+        "leading_3gram" : ["pos_m2", "pos_m1", "pos_0"],
+        "leading_2gram" : ["pos_m1", "pos_0"],
+        "lagging_4gram" : ["pos_len_m2", "pos_len_m1", "pos_len", "pos_len_p1"],
+        "lagging_3gram" : ["pos_len_m2", "pos_len_m1", "pos_len"],
+        "lagging_2gram" : ["pos_len_m1", "pos_len"]
+    }
+
+    for row in read_cursor:
+        shas = {}
+        for task_title in tasks:
+            d = {key:row[key] for key in tasks[task_title]}
+            dict_sha = columnsDictToSHA(d)
+            shas[task_title] = dict_sha
+        query = """INSERT INTO pos_hashes VALUES (%s, %s, %s, %s, %s, %s, %s)"""
+        values = (row["id"], shas["leading_4gram"], shas["leading_3gram"], shas["leading_2gram"], shas["lagging_4gram"], shas["lagging_3gram"], shas["lagging_2gram"])
+        write_cursor.execute(query, values)
+        written+=1
+
+        print_timer = print_timer-1
+        if print_timer==0:
+            print "Updated {}".format(written)
+            print_timer = print_interval
+        commit_timer = commit_timer-1
+        if commit_timer==0:
+            write_conn.commit()
+            commit_timer = commit_interval
+
+    write_conn.commit()
+    read_cursor.close()
+    read_conn.close()
+    write_conn.close()

@@ -91,3 +91,23 @@ def computeSHA():
         cursor2.close()
     conn.commit()
     conn.close()
+
+def continuePoemComparison():
+    import wikibard, dbmanager
+    reload(dbmanager)
+    conn = dbmanager.MySQLDatabaseConnection(user="william", password="Sh4kespeare", host="localhost", dbname="wikisonnet", options={"use_cache":0})
+    hard_conn = mysql.connector.connect(user="william", password="Sh4kespeare", host="localhost", database="wikisonnet", charset='utf8', use_unicode=True)
+    page = 25041
+    links = [27047837,2219,5468825,4054,6901847,6886386,8686599,485507,177644,1041974,2965165,36623,146351,198201,15908735,319558,341957,187662,102837,1481067,2395137,205392,454475,265516,654151,32087,778814,307054,6190562,198199,2419084,1666399,32927]
+    excludedWord = "reshaped"
+    excludedLines = [58814,66973,425329,494873,58801,26556,1719,999778,269663,45562,51466,3967249,32599]
+    rhyme = "EYPT"
+    previousLine = {"page_id":25041, "id":16, "rhyme_part":"UW", "pos_0":"IN", "pos_1":"DT", "pos_len_m2":"NNS", "pos_len_m1":"DT", "pos_len":"TO", "pos_len_p1":"VB"}
+
+    t = Timer()
+
+    t.begin("Baseline")
+    wikibard.continuePoem(conn, page, links, excludedWord=excludedWord, excludedLines=excludedLines, previousLine=previousLine, starts=False, ends=False, rhyme=rhyme)
+    t.end("Baseline")
+
+    t.printTime()
