@@ -6,12 +6,12 @@ import operator
 from textblob import TextBlob
 from pattern.en import parse
 
-from nltk.util import ngrams
-from nltk.corpus import cmudict
-from nltk.probability import LidstoneProbDist
+# from nltk.util import ngrams
+# from nltk.corpus import cmudict
+# from nltk.probability import LidstoneProbDist
 
-e = cmudict.entries()
-d = cmudict.dict()
+# e = cmudict.entries()
+# d = cmudict.dict()
 
 banned_end_words = ['the', 'a', 'an', 'at', 'been', 'in', 'of', 'to', 'by', 'my',
 					'too', 'not', 'and', 'but', 'or', 'than', 'then', 'no', 'o',
