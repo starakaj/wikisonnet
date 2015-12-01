@@ -8,6 +8,15 @@ import time
 import multiprocessing as mp
 from pattern.en import parse
 import re
+import gensim
+import logging
+
+class ScanContext:
+    def __init__(self, extractor, dbconn, id2word, lda):
+        self.extractor = extractor
+        self.dbconn = dbconn
+        self.id2word = id2word
+        self.lda = lda
 
 def findIambsForPages(ptext, pageID):
     iambic_runs = []
@@ -20,6 +29,42 @@ def findIambsForPages(ptext, pageID):
             ## Each sentence is just a raw, nasty string of the code-stripped sentence
             iambic_runs = iambic_runs + wordutils.extract_iambic_pentameter(sen.string)
     return iambic_runs
+
+def scan(extractor_filename, methods=[], startIdx=0, skipevery=1, offset=0):
+    logging.basicConfig(format = '%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
+    page_idx = 0
+    dbconn = dbmanager.MySQLDatabaseConnection.connectionWithConfiguration('local')
+    extractor = wikiutils.WikiTextExtractor(extractor_filename)
+    commit_idx=0
+    commit_ceil=1000
+    ignore_namespaces = 'Wikipedia Category File Portal Template MediaWiki User Help Book Draft'.split()
+    id2word = gensim.corpora.Dictionary.load_from_text('lda/results_wordids.txt.bz2')
+    lda = gensim.models.ldamodel.LdaModel.load('lda/lda_100')
+    ctx = ScanContext(extractor, dbconn, id2word, lda)
+
+    for ex in extractor:
+        title = extractor.titleForCurrentPage()
+        skip_scan = False
+        skip_scan = skip_scan or (page_idx < startIdx)
+        skip_scan = skip_scan or (page_idx+offset)%skipevery != 0
+        skip_scan = skip_scan or any([title.startswith(ignore + ":") for ignore in ignore_namespaces])
+        if not (skip_scan):
+
+            try:
+                for m in methods:
+                    functionDict[m](ctx)
+            except Exception as e:
+                print e
+
+        page_idx += 1
+        commit_idx += 1
+        if commit_idx >= commit_ceil:
+            commit_idx=0
+            dbconn.connection.commit()
+            if offset==0:
+                print "\tScanning page %d: %s" % (page_idx, extractor.titleForCurrentPage())
+    dbconn.connection.commit()
+    print "Scan complete!"
 
 def scanIambic(extractor, dbconn):
     print "Beginning scan:"
@@ -67,7 +112,7 @@ def scanIambic(extractor, dbconn):
 def scanPOS(extractor, dbconn):
     print "Beginning scan:"
     for i, page in enumerate(extractor.pages):
-        print "\tScanning page %d of %d, %s" % (i, len(extractor.pages), extractor.titleForCurrentPage())
+        print "\tScanning page %d, %s" % (i, extractor.titleForCurrentPage())
         ptext = extractor.textForCurrentPage()
         for paragraph in ptext.split("\n"):
             blob = textblob.TextBlob(paragraph)
@@ -94,40 +139,53 @@ def countPages(extractor, limit=-1):
             break
     t.printTime()
 
-def scanLinks(extractor, dbconn):
-    page_idx = 0
-    page_count = 0 ## extractor.page_count()
+def scanNames(ctx):
+    extractor = ctx.extractor
+    dbconn = ctx.dbconn
+    page_idx=0
+    title = extractor.titleForCurrentPage().replace(' ', '_')
+    dbconn.storeTitleForPage(extractor.pageIDForCurrentPage(), title, doCommit=False)
 
-    for ex in extractor:
-        try:
-            page_idx = page_idx+1
-            if (page_idx%3)!=2:
-                continue
-            page_id = extractor.pageIDForCurrentPage()
-            page_title = extractor.titleForCurrentPage().replace(" ", "_")
-            revision_id = extractor.revisionIDForCurrentPage()
-            datestring = extractor.timestampForCurrentPage()
-            print "\tScanning page %d of %d, %s" % (page_idx, page_count, extractor.titleForCurrentPage())
+def scanRedirects(ctx):
+    extractor = ctx.extractor
+    dbconn = ctx.dbconn
+    page_id = extractor.pageIDForCurrentPage()
+    redirect = extractor.redirectTitleForCurrentPage()
+    if redirect is not None:
+        redirect = redirect.replace(" ", "_")
+        redirectID = dbconn.pageIDForPageTitle(redirect)
+        if redirectID is not None:
+            dbconn.storeRedirectForPage(page_id, redirectID, doCommit=True)
 
-            ## 1. Put the page into the list of indexed pages, with its title
-            dbconn.storeTitleForPage(page_id, page_title, revision_id, datestring)
+def scanCategories(ctx):
+    extractor = ctx.extractor
+    dbconn = ctx.dbconn
+    page_id = extractor.pageIDForCurrentPage()
+    redirect = extractor.redirectTitleForCurrentPage()
+    if redirect is None:
+        text = extractor.textForCurrentPage()
+        bow = ctx.id2word.doc2bow(text.lower().split())
+        cat_list = ctx.lda[bow]
+        cat = None
+        if len(cat_list) > 0:
+            cat_list = sorted(cat_list, key=lambda x: x[1], reverse=True)
+            cat = cat_list[0][0]
+        dbconn.storeCategoryForPage(page_id, cat, doCommit=True)
 
-            ## 2. Store the redirect title for the page, if any
-            redirect = extractor.redirectTitleForCurrentPage()
-            if redirect is not None:
-                print "\t\tStoring redirect from %s to %s" % (extractor.titleForCurrentPage(), redirect)
-                redirect = redirect.replace(" ", "_")
-                dbconn.storeRedirectForPage(page_id, redirect, revision_id, datestring)
+def scanLinks(ctx):
+    extractor = ctx.extractor
+    dbconn = ctx.dbconn
+    redirect = extractor.redirectTitleForCurrentPage()
+    if redirect is None:
+        page_id = extractor.pageIDForCurrentPage()
 
-            ## 3. Clear up old internal links for the page
-            dbconn.removeOldLinksForPage(page_id, revision_id)
+        ## 1. Get the page ID's for the outgoing links
+        link_ids = map(lambda x: dbconn.pageIDForPageTitle(x.replace(" ", "_"), doCache=True),  extractor.canonicalLinksForCurrentPage())
+        link_ids = filter(lambda x: x is not None, link_ids)
+        link_ids = list(set(link_ids))
 
-            ## 4. Add outgoing links for the page to the outgoing links table
-            dbconn.storeInternalLinksForPage(page_id, extractor.canonicalLinksForCurrentPage(), revision_id, datestring)
-        except:
-            print "Error"
-
-    print "Scan complete!"
+        ## 2. Add outgoing links for the page to the outgoing links table
+        dbconn.storeInternalLinksForPage(page_id, link_ids)
 
 def displayCategories(extractor):
     foundModels = []
@@ -174,3 +232,5 @@ def prepareInputsForTopicModelling(extractor, ofile):
 
         if page_idx > 1000:
             break
+
+functionDict = {'names':scanNames, 'links':scanLinks, 'redirects':scanRedirects, 'categories':scanCategories}

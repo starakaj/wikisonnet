@@ -5,10 +5,7 @@ import nltk
 import operator
 from textblob import TextBlob
 from pattern.en import parse
-
-from nltk.util import ngrams
 from nltk.corpus import cmudict
-from nltk.probability import LidstoneProbDist
 
 e = cmudict.entries()
 d = cmudict.dict()

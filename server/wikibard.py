@@ -4,7 +4,7 @@ import pdb
 import random
 from benchmarking import Timer
 
-optimized = True
+optimized = False
 
 n2p = {
     "pos_len_m1":"pos_m1",

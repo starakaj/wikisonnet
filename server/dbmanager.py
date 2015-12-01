@@ -6,6 +6,8 @@ import iso8601
 import json
 from benchmarking import Timer
 import scraper.dbreformatting as dbreformatting
+import os
+import yaml
 
 def digest(text):
     m = hashlib.md5()
@@ -48,6 +50,7 @@ class MySQLDatabaseConnection:
         self.connection = mysql.connector.connect(user=user, password=password, host=host, database=dbname, charset='utf8', use_unicode=True)
         self.statement = None
         self.execution_time = 0
+        self.name_cache = {}
 
         if options is not None:
             for k in options:
@@ -55,6 +58,14 @@ class MySQLDatabaseConnection:
                     self.connection.cursor().execute("""SET SESSION query_cache_type=%s""", (options[k],))
                 else:
                     print 'Ignoring unrecognized option {}'.format(k)
+
+    @staticmethod
+    def connectionWithConfiguration(config):
+        filename = os.path.join(os.path.dirname(__file__), 'dbconfig.yml')
+        f = open(filename, 'r')
+        databases = yaml.load(f)
+        dbconfig = databases[config]
+        return MySQLDatabaseConnection(dbconfig['database'], dbconfig['user'], dbconfig['host'], dbconfig['password'])
 
     def close(self):
         if self.connection:
@@ -71,19 +82,17 @@ class MySQLDatabaseConnection:
         cur.close()
         return res[0][0]
 
-    def storeTitleForPage(self, pageID, pagetitle, revision, datestring):
+    def storeTitleForPage(self, pageID, pagetitle, doCommit=True):
         cursor = self.connection.cursor()
-        d = iso8601.parse_date(datestring)
-        query = ("""INSERT INTO page_titles (page_id, page_title, revision_id, date)"""
-                """ VALUES (%s, %s, %s, %s)"""
+        query = ("""INSERT INTO page_names (page_id, name)"""
+                """ VALUES (%s, %s)"""
                 """ ON DUPLICATE KEY UPDATE"""
-                """ page_title=if(VALUES(date) > date, VALUES(page_title), page_title),"""
-                """ revision_id=if(VALUES(date) > date, VALUES(revision_id), revision_id),"""
-                """ date=if(VALUES(date) > date, VALUES(date), date);"""
+                """ name=name;"""
                 )
-        values = (pageID, pagetitle, revision, d.strftime('%Y-%m-%d %H:%M:%S'))
+        values = (pageID, pagetitle)
         cursor.execute(query, values)
-        self.connection.commit()
+        if doCommit:
+            self.connection.commit()
         cursor.close()
 
     def updateRhymeCounts(self):
@@ -108,43 +117,39 @@ class MySQLDatabaseConnection:
             self.connection.commit()
         cursor.close()
 
-    def storeRedirectForPage(self, pageID, redirect_title, revision, datestring):
+    def storeRedirectForPage(self, pageID, redirectID, doCommit=True):
         cursor = self.connection.cursor()
-        d = iso8601.parse_date(datestring)
-        query = ("""INSERT INTO redirects (page_id, redirect_title, revision_id, date)"""
-                """ VALUES (%s, %s, %s, %s)"""
+        query = ("""INSERT INTO redirects (from_id, to_id)"""
+                """ VALUES (%s, %s)"""
                 """ ON DUPLICATE KEY UPDATE"""
-                """ redirect_title=if(VALUES(date) > date, VALUES(redirect_title), redirect_title),"""
-                """ revision_id=if(VALUES(date) > date, VALUES(revision_id), revision_id),"""
-                """ date=if(VALUES(date) > date, VALUES(date), date);"""
+                """ to_id=to_id;"""
                 )
-        values = (pageID, redirect_title, revision, d.strftime('%Y-%m-%d %H:%M:%S'))
+        values = (pageID, redirectID)
         cursor.execute(query, values)
-        self.connection.commit()
+        if doCommit:
+            self.connection.commit()
         cursor.close()
 
-    def removeOldLinksForPage(self, pageID, revision):
+    def storeCategoryForPage(self, pageID, categoryID, doCommit=True):
         cursor = self.connection.cursor()
-        query = ("""DELETE FROM internal_links"""
-                """ WHERE page_id = %s AND revision_id < %s"""
+        query = ("""INSERT INTO page_categories (id, category)"""
+                """ VALUES (%s, %s)"""
+                """ ON DUPLICATE KEY UPDATE"""
+                """ category=category;"""
                 )
-        values = (pageID, revision)
+        values = (pageID, categoryID)
         cursor.execute(query, values)
-        self.connection.commit()
+        if doCommit:
+            self.connection.commit()
         cursor.close()
 
-    def storeInternalLinksForPage(self, pageID, links, revision, datestring):
+    def storeInternalLinksForPage(self, pageID, linkIDs):
         cursor = self.connection.cursor()
-        d = iso8601.parse_date(datestring)
-        for link_title in links:
-            query = ("""INSERT INTO internal_links (page_id, link_title, revision_id, date)"""
-                    """ VALUES (%s, %s, %s, %s)"""
-                    """ ON DUPLICATE KEY UPDATE"""
-                    """ link_title=if(VALUES(date) > date, VALUES(link_title), link_title),"""
-                    """ revision_id=if(VALUES(date) > date, VALUES(revision_id), revision_id),"""
-                    """ date=if(VALUES(date) > date, VALUES(date), date);"""
+        for linkID in linkIDs:
+            query = ("""INSERT IGNORE INTO page_links (from_id, to_id)"""
+                    """ VALUES (%s, %s);"""
                     )
-            values = (pageID, link_title, revision, d.strftime('%Y-%m-%d %H:%M:%S'))
+            values = (pageID, linkID)
             cursor.execute(query, values)
         self.connection.commit()
         cursor.close()
@@ -173,15 +178,33 @@ class MySQLDatabaseConnection:
             self.connection.commit()
         cursor.close()
 
-    def pageIDForPageTitle(self, page_title):
+    def incrementViewCountForPage(self, pageID, count, doCommit=True):
         cursor = self.connection.cursor()
-        query = """SELECT page_id FROM page_titles WHERE page_title = %s"""
-        values = (page_title,)
+        query = (
+            """INSERT INTO view_counts (id, count) VALUES(%s, %s)"""
+            """ ON DUPLICATE KEY UPDATE count=count+VALUES(count);"""
+        )
+        values = (pageID, count)
+        cursor.execute(query, values)
+        if doCommit:
+            self.connection.commit()
+        cursor.close()
+
+    def pageIDForPageTitle(self, name, doCache=False):
+
+        if name in self.name_cache:
+            return self.name_cache[name]
+
+        cursor = self.connection.cursor()
+        query = """SELECT page_id FROM page_names WHERE name = %s"""
+        values = (name,)
         cursor.execute(query, values)
         res = cursor.fetchall()
         cursor.close()
         if len(res) is not 0:
             pageID = res[0][0]
+            if doCache:
+                self.name_cache[name] = pageID
             return pageID
         else:
             return None
@@ -190,7 +213,7 @@ class MySQLDatabaseConnection:
         # cursor.execute(query, values)
         # res = cursor.fetchall()
         # if len(res) is not 0:
-        #     query = """SELECT page_id FROM page_titles WHERE BINARY(page_title) = %s"""
+        #     query = """SELECT page_id FROM page_names WHERE BINARY(name) = %s"""
         #     values = (res[0][0],)
         #     res = cursor.fetchall()
         #     if len(res) is not 0:
@@ -202,41 +225,38 @@ class MySQLDatabaseConnection:
 
     def pageTitleForPageID(self, pageID):
         cursor = self.connection.cursor()
-        query = """SELECT page_title FROM page_titles WHERE page_id = %s"""
+        query = """SELECT name FROM page_names WHERE page_id = %s"""
         values = (pageID,)
         cursor.execute(query, values)
         res = cursor.fetchall()
         if len(res) is not 0:
-            page_title = res[0][0]
+            name = res[0][0]
         else:
-            page_title = None
+            name = None
         cursor.close()
-        return page_title
+        return name
 
     def followRedirectForPageID(self, pageID):
         cursor = self.connection.cursor()
-        query = """SELECT redirect_title FROM redirects WHERE page_id = (%s)"""
+        query = """SELECT to_id FROM redirects WHERE from_id = (%s)"""
         values = (pageID,)
         cursor.execute(query, values)
         res = cursor.fetchall();
         cursor.close()
 
         if len(res) is not 0:
-            redirect_title = res[0][0]
-            pageID = self.pageIDForPageTitle(redirect_title)
+            pageID = res[0][0]
         return pageID
 
     def pagesLinkedFromPageID(self, pageID):
         pageID = self.followRedirectForPageID(pageID)
         cursor = self.connection.cursor()
-        query = """SELECT link_title FROM internal_links WHERE page_id = %s"""
+        query = """SELECT to_id FROM page_links WHERE from_id = %s"""
         values = (pageID,)
         cursor.execute(query, values)
         links = cursor.fetchall()
         cursor.close()
-        for i in range(len(links)):
-            links[i] = self.pageIDForPageTitle(links[i][0])
-        links = filter(lambda x: x is not None, links)
+        links = [l[0] for l in links]
         return links
 
     def rhymeCountForRhyme(self, word, rhyme):
@@ -296,13 +316,13 @@ class MySQLDatabaseConnection:
 
         t.begin("prepare")
         cur = self.connection.cursor(dictionary=True) ## DictCursor is best
-        query = """SELECT * FROM iambic_lines"""
+        query = """SELECT * FROM iambic_lines """
         valueList = [];
         continuing_where = False
-        if optimized:
-            options = self.modifiedOptions(options)
-            if any([p in options for p in ["leading_2gram", "leading_3gram", "leading_4gram", "lagging_2gram", "lagging_3gram", "lagging_4gram"]]):
-                query = query + """ join pos_hashes on pos_hashes.line_id = iambic_lines.id"""
+        # if optimized:
+        #     options = self.modifiedOptions(options)
+        #     if any([p in options for p in ["leading_2gram", "leading_3gram", "leading_4gram", "lagging_2gram", "lagging_3gram", "lagging_4gram"]]):
+        #         query = query + """ join pos_hashes on pos_hashes.line_id = iambic_lines.id"""
 
         excludedWord=None
         leadChunk=None
@@ -314,18 +334,18 @@ class MySQLDatabaseConnection:
         ### Building WHERE clause ###
         for key in options:
             if key == "excludedWord":
-                query = queryWithAddedWhere(query, """ word != %s""", valueList, options[key])
+                query = queryWithAddedWhere(query, """ iambic_lines.word != %s""", valueList, options[key])
             elif key == "rhyme":
-                query = queryWithAddedWhere(query, """ rhyme_part = %s""", valueList, options[key])
+                query = queryWithAddedWhere(query, """ iambic_lines.rhyme_part = %s""", valueList, options[key])
             elif key == "excludedLines":
                 excludedLines = options[key]
                 if len(excludedLines) is 1:
-                    query = queryWithAddedWhere(query, """ id != %s""", valueList, excludedLines[0])
+                    query = queryWithAddedWhere(query, """ iambic_lines.id != %s""", valueList, excludedLines[0])
                 elif len(excludedLines) is not 0:
                     format_strings = ','.join(['%s'] * len(excludedLines))
-                    query = queryWithAddedWhereAppend(query, """ id NOT IN (%s)""" % format_strings, valueList, list(excludedLines))
+                    query = queryWithAddedWhereAppend(query, """ iambic_lines.id NOT IN (%s)""" % format_strings, valueList, list(excludedLines))
             else:
-                query = queryWithAddedWhere(query, """ """ + key + """ = %s""", valueList, options[key])
+                query = queryWithAddedWhere(query, """ iambic_lines.""" + key + """ = %s""", valueList, options[key])
 
         if pages:
             if len(pages) is 1:
