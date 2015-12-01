@@ -37,7 +37,7 @@ os.system(gzipcommand)
 print "Finished Compressing database dump\n"
 
 print "Uploading to S3"
-s3command = "/bin/bash -c \"ssh {} '/usr/local/bin/aws s3 cp {}{} s3://{} --grants read=uri=http://acs.amazonaws.com/groups/global/AllUsers full=email=starakajian@gmail.com'\"".format(diable_host, diable_dir, gzipname, s3_bucket)
+s3command = "/bin/bash -c \"ssh {} '/usr/local/bin/aws s3 cp {}{} s3://{} --grants read=uri=http://acs.amazonaws.com/groups/global/AllUsers full=emailaddress=starakajian@gmail.com'\"".format(diable_host, diable_dir, gzipname, s3_bucket)
 os.system(s3command)
 print "Finished s3 upload\n"
 
