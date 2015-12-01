@@ -2,4 +2,6 @@ scraper/data
 *.pyc
 *.gz
 *.sql
-
+dynamodb/*.json
+dynamodb/dynamodb
+lda
