@@ -3,7 +3,7 @@ import dbconnect
 import testprocessor
 import task
 
-path = "/Users/samtarakajian/Documents/wikisonnet/caching-server/data/"
+path = "/Users/samtarakajian/Documents/wikisonnet/caching_server/data/"
 
 def page_exists(wiki_page_name):
     return True
@@ -11,7 +11,7 @@ def page_exists(wiki_page_name):
 def page_suggestions(wiki_page_name):
     return ["Fuck all"]
 
-def get_cached_resource(wiki_page_name):
+def get_cached_resource(wiki_page_name, task_master):
     resource_key = int(hashlib.md5(wiki_page_name).hexdigest(), 16) % 100 + 1
     dbconn = dbconnect.MySQLDatabaseConnection.connectionWithConfiguration('local-cachetest')
     query = """SELECT id, path FROM cached_resources WHERE resource_key=%s AND used=0 LIMIT 1 FOR UPDATE;"""
@@ -34,17 +34,15 @@ def get_cached_resource(wiki_page_name):
     else:
         print "Cache miss: creating resource synchronously"
         retval = testprocessor.process(resource_key)
-
-    ## In the background, spin up a new resource
-    task.prepareCachedResource(testprocessor.process, resource_key, task.testCacheDatabase())
-
     dbconn.close()
+
+    task_master.notifyResourceConsumed(resource_key)
 
     return retval
 
-def poem_page(wiki_page_name):
+def poem_page(wiki_page_name, task_master):
     ## Check if the page exists
     if not page_exists(wiki_page_name):
         return page_suggestions(wiki_page_name)
 
-    return get_cached_resource(wiki_page_name)
+    return get_cached_resource(wiki_page_name, task_master)

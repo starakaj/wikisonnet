@@ -17,3 +17,9 @@ def scaled_list(lst, minout, maxout):
     minin = min(lst)
     maxin = max(lst)
     return map(lambda x: (x-minin) / (maxin-minin) * (maxout - minout) + minout, lst)
+
+def createTestDistribution(number_of_keys, max_count_per_key, min_count_per_key, exponent):
+    task_counts = allocate_pdist(number_of_keys, exponent)
+    scramble(task_counts)
+    task_counts = scaled_list(task_counts, min_count_per_key, max_count_per_key)
+    return [(i+1, int(round(t))) for (i, t) in enumerate(task_counts)]

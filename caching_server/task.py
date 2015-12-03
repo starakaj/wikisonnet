@@ -4,7 +4,7 @@ import random
 import util
 import testprocessor
 
-path = "/Users/samtarakajian/Documents/wikisonnet/caching-server/data/"
+path = "/Users/samtarakajian/Documents/wikisonnet/caching_server/data/"
 
 def testCacheDatabase():
     return {"user":"william",
@@ -30,11 +30,9 @@ def prepareCachedResource(pfunc, pinput, dbconfig):
     dbconn.commit()
     dbconn.close()
 
-def createTestTasks(number_of_keys, max_count_per_key, min_count_per_key, exponent):
-    task_counts = util.allocate_pdist(number_of_keys, exponent)
-    util.scramble(task_counts)
-    task_counts = util.scaled_list(task_counts, min_count_per_key, max_count_per_key)
-    return [(i+1, int(round(t))) for (i, t) in enumerate(task_counts)]
+class Task:
+    def __init__(self, resource_key):
+        self.resource_key = resource_key
 
 class TaskMaker:
     def __init__(self, dbconfig, pfunc, plist):

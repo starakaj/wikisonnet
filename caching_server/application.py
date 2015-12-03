@@ -1,6 +1,9 @@
 from flask import Flask, abort, jsonify, request
 from pybard import poem_page
 import task
+import rebalancer
+
+task_master = rebalancer.TaskMaster(process_count=4)
 
 application = Flask(__name__)
 
@@ -8,7 +11,7 @@ application.add_url_rule('/', 'index', (lambda: "Holy shit you did it congratula
 
 @application.route('/api/v2/compose/<wiki>', methods=['GET'])
 def compose(wiki):
-    poem = poem_page(wiki)
+    poem = poem_page(wiki, task_master)
     return jsonify(poem=poem)
 
 # run the app.
