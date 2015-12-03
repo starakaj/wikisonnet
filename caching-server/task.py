@@ -2,10 +2,7 @@ import mysql.connector
 import time
 import random
 import util
-
-words = ["fish", "lame", "moose", "jacks", "forest", "long", "selfish", "cormorant", "grass", "believe",
-        "help", "woe", "avalanche", "simple", "pull", "frozen", "tapioca", "religion", "grout", "disk",
-        "sorrel", "waste", "weasel", "concupiscent", "Mexico", "orange", "vest", "taxi", "church"]
+import testprocessor
 
 path = "/Users/samtarakajian/Documents/wikisonnet/caching-server/data/"
 
@@ -18,15 +15,14 @@ def testCacheDatabase():
 def uid():
     return "{}-{}".format(random.randint(1, 10000), int(time.time() * 10000.0))
 
-def testProcessFunc(pinput):
+def processAndSave(pinput, pfunc):
     fname = uid()
     with open(path + fname, 'w') as f:
-        for i in range (5):
-            f.write(words[random.randint(0, len(words)-1)] + ", ")
+        f.write(pfunc(pinput))
     return fname
 
 def prepareCachedResource(pfunc, pinput, dbconfig):
-    out_path = pfunc(pinput)
+    out_path = processAndSave(pinput, pfunc)
     dbconn = mysql.connector.connect(user=dbconfig["user"], password=dbconfig["password"], host=dbconfig["host"], database=dbconfig["database"])
     query = """INSERT INTO cached_resources (resource_key, path) VALUES(%s, %s)"""
     values = (pinput, out_path)

@@ -1,3 +1,4 @@
+import dbhash
 import random
 from benchmarking import Timer
 import scraper.dbreformatting as dbreformatting
@@ -37,7 +38,6 @@ def randomIndexedPage(dbconn):
 
 
 def pageIDForPageTitle(dbconn, name, doCache=False):
-
     if name in dbconn.name_cache:
         return dbconn.name_cache[name]
 
@@ -130,7 +130,7 @@ def modifiedOptions(options):
 
             # Get a dictionary for which to compute a hash
             dict_to_hash = {col:options[col] for col in pos_columns}
-            dict_as_sha = dbreformatting.columnsDictToSHA(dict_to_hash)
+            dict_as_sha = dbhash.columnsDictToSHA(dict_to_hash)
 
             # modify options to include the new keys
             hashed_column_name = column_names[len(pos_columns) - 2]

@@ -1,3 +1,4 @@
+from server.dbhash import columnsDictToSHA
 import mysql.connector
 import hashlib
 import json
@@ -135,9 +136,6 @@ def columnAndKeyForPOSColumnsWithRhyme(rhyme, columns={}, isPrevious=True):
     columns["rhyme_part"] = rhyme
     key = ("""prev""" if isPrevious else """next""") + """key""" + str(len(columns)-1)
     return (key, hashlib.sha1(json.dumps(columns, sort_keys=True)).digest())
-
-def columnsDictToSHA(columns):
-    return hashlib.sha1(json.dumps(columns, sort_keys=True)).digest()
 
 def countTrailingPOS(commit_interval=1000, print_interval=1000):
     read_conn = mysql.connector.connect(user="william", password="Sh4kespeare", host="localhost", database="wikisonnet", charset='utf8', use_unicode=True)
