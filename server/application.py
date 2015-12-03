@@ -1,5 +1,5 @@
 from flask import Flask, abort, jsonify, request
-import dbmanager
+import dbconnect, dbreader
 import wikibard
 from  werkzeug.debug import get_current_traceback
 import yaml
@@ -13,12 +13,12 @@ except Exception, e:
     print str(e)
 
 # Change this if you'd like to use a local database or something
-dbconfig = databases['amazon']
+dbconfig = 'amazon'
 
 def random_page():
-    db = dbmanager.MySQLDatabaseConnection(dbconfig["database"], dbconfig["user"], dbconfig["host"], dbconfig["password"])
-    pageID = db.randomIndexedPage()
-    return db.pageTitleForPageID(pageID)
+    db = dbconnect.connectionWithConfiguration(dbconfig)
+    pageID = dbreader.randomIndexedPage(db)
+    return dbreader.pageTitleForPageID(db, pageID)
 
 def say_hello(username = "World"):
     return '<p>Hello %s!</p>\n' % username
@@ -47,8 +47,8 @@ application.add_url_rule('/api/v1/random', 'random', (lambda:
 # poem writing rule
 def poem_page(wiki, sloppy=False):
     try:
-        db = dbmanager.MySQLDatabaseConnection(dbconfig["database"], dbconfig["user"], dbconfig["host"], dbconfig["password"])
-        pageID = db.pageIDForPageTitle(wiki)
+        db = dbconnect.connectionWithConfiguration(dbconfig)
+        pageID = dbreader.pageIDForPageTitle(db, wiki)
         if pageID is None:
             return {"error":"No page with name " + wiki}
         return wikibard.iPoem(pageID, dbconfig, sloppy=sloppy)

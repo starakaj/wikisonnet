@@ -4,4 +4,6 @@ scraper/data
 *.sql
 dynamodb/*.json
 dynamodb/dynamodb
+caching-server/dbconfig.yml
+caching-server/data
 lda

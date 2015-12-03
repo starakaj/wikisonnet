@@ -1,5 +1,4 @@
 import gzip
-import server.dbmanager
 
 def parseLine(line, db):
     parts = line.split()
@@ -7,7 +6,7 @@ def parseLine(line, db):
         title = parts[1]
         pageID = db.pageIDForPageTitle(title, doCache=True)
         if pageID is not None:
-            db.incrementViewCountForPage(pageID, parts[2], doCommit=False)
+            incrementViewCountForPage(db, pageID, parts[2], doCommit=False)
 
 def countViews(filename, db):
     if filename.endswith(".gz"):
@@ -23,3 +22,15 @@ def countViews(filename, db):
             commit_count=0
             db.connection.commit()
     f.close()
+
+def incrementViewCountForPage(dbconn, pageID, count, doCommit=True):
+    cursor = dbconn.connection.cursor()
+    query = (
+        """INSERT INTO view_counts (id, count) VALUES(%s, %s)"""
+        """ ON DUPLICATE KEY UPDATE count=count+VALUES(count);"""
+    )
+    values = (pageID, count)
+    cursor.execute(query, values)
+    if doCommit:
+        dbconn.connection.commit()
+    cursor.close()

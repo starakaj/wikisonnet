@@ -93,9 +93,8 @@ def computeSHA():
     conn.close()
 
 def continuePoemComparison():
-    import wikibard, dbmanager
-    reload(dbmanager)
-    conn = dbmanager.MySQLDatabaseConnection(user="william", password="Sh4kespeare", host="localhost", dbname="wikisonnet", options={"use_cache":0})
+    import wikibard, dbconnect
+    conn = dbconnect.MySQLDatabaseConnection(user="william", password="Sh4kespeare", host="localhost", dbname="wikisonnet", options={"use_cache":0})
     hard_conn = mysql.connector.connect(user="william", password="Sh4kespeare", host="localhost", database="wikisonnet", charset='utf8', use_unicode=True)
     page = 25041
     links = [27047837,2219,5468825,4054,6901847,6886386,8686599,485507,177644,1041974,2965165,36623,146351,198201,15908735,319558,341957,187662,102837,1481067,2395137,205392,454475,265516,654151,32087,778814,307054,6190562,198199,2419084,1666399,32927]

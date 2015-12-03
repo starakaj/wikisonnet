@@ -2,6 +2,28 @@ import mysql.connector
 import hashlib
 import json
 
+def updateRhymeCounts(dbconn):
+    cursor=dbconn.connection.cursor()
+    query = """SELECT DISTINCT(word) AS word, rhyme_part FROM iambic_lines;"""
+    cursor.execute(query)
+    res = cursor.fetchall()
+    for rp in res:
+        query = """SELECT COUNT(*) FROM iambic_lines WHERE rhyme_part=%s AND word!=%s;"""
+        values = (rp[1], rp[0])
+        cursor.execute(query, values)
+        res2 = cursor.fetchall()
+        print rp[0] + " rhymed " + str(res2[0][0]) + " times"
+        query = ("""INSERT INTO rhyme_counts (word, count)"""
+                """ VALUES (%s, %s)"""
+                """ ON DUPLICATE KEY UPDATE"""
+                """ word=VALUES(word),"""
+                """ count=VALUES(count);"""
+                )
+        values = (rp[0], res2[0][0])
+        cursor.execute(query, values)
+        dbconn.connection.commit()
+    cursor.close()
+
 def updateLinkCounts(commit_interval=1000, print_interval=1000):
     read_conn = mysql.connector.connect(user="william", password="sh4kespeare", host="localhost", database="wikisonnet", charset='utf8', use_unicode=True)
     write_conn = mysql.connector.connect(user="william", password="sh4kespeare", host="localhost", database="wikisonnet", charset='utf8', use_unicode=True)

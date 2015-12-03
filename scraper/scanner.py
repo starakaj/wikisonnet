@@ -1,4 +1,6 @@
-import server.dbmanager as dbmanager
+import server.dbconnect as dbconnect
+import dbwriter
+import server.dbreader as dbreader
 from server.benchmarking import Timer
 import wikiutils
 import wordutils
@@ -33,13 +35,13 @@ def findIambsForPages(ptext, pageID):
 def scan(extractor_filename, methods=[], startIdx=0, skipevery=1, offset=0):
     logging.basicConfig(format = '%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
     page_idx = 0
-    dbconn = dbmanager.MySQLDatabaseConnection.connectionWithConfiguration('local')
+    dbconn = dbconnect.MySQLDatabaseConnection.connectionWithConfiguration('local')
     extractor = wikiutils.WikiTextExtractor(extractor_filename)
     commit_idx=0
     commit_ceil=1000
     ignore_namespaces = 'Wikipedia Category File Portal Template MediaWiki User Help Book Draft'.split()
     id2word = gensim.corpora.Dictionary.load_from_text('lda/results_wordids.txt.bz2')
-    lda = gensim.models.ldamodel.LdaModel.load('lda/lda_100')
+    lda = gensim.models.ldamodel.LdaModel.load('lda/lda_1000')
     ctx = ScanContext(extractor, dbconn, id2word, lda)
 
     for ex in extractor:
@@ -103,24 +105,9 @@ def scanIambic(extractor, dbconn):
                 rhyme_part = wordutils.rhyming_part(wordutils.make_safe(words[-1]))
                 rhyme_part = "".join(rhyme_part)
                 try:
-                    dbconn.storePoemLine(pageID, wordutils.make_safe(words[-1]), run.text, run.pos, rhyme_part, run.options)
+                    dbwriter.storePoemLine(dbconn, pageID, wordutils.make_safe(words[-1]), run.text, run.pos, rhyme_part, run.options)
                 except:
                     print "store line error"
-
-    print "Scan complete!"
-
-def scanPOS(extractor, dbconn):
-    print "Beginning scan:"
-    for i, page in enumerate(extractor.pages):
-        print "\tScanning page %d, %s" % (i, extractor.titleForCurrentPage())
-        ptext = extractor.textForCurrentPage()
-        for paragraph in ptext.split("\n"):
-            blob = textblob.TextBlob(paragraph)
-            for sen in blob.sentences:
-
-                ## Train our part-of-speech n-gram model on this sentence
-                pos = wordutils.pos_counts(sen.string)
-                dbconn.updatePOSCounts(pos)
 
     print "Scan complete!"
 
@@ -144,7 +131,7 @@ def scanNames(ctx):
     dbconn = ctx.dbconn
     page_idx=0
     title = extractor.titleForCurrentPage().replace(' ', '_')
-    dbconn.storeTitleForPage(extractor.pageIDForCurrentPage(), title, doCommit=False)
+    dbwriter.storeTitleForPage(dbconn, extractor.pageIDForCurrentPage(), title, doCommit=False)
 
 def scanRedirects(ctx):
     extractor = ctx.extractor
@@ -153,9 +140,9 @@ def scanRedirects(ctx):
     redirect = extractor.redirectTitleForCurrentPage()
     if redirect is not None:
         redirect = redirect.replace(" ", "_")
-        redirectID = dbconn.pageIDForPageTitle(redirect)
+        redirectID = dbreader.pageIDForPageTitle(dbconn, redirect)
         if redirectID is not None:
-            dbconn.storeRedirectForPage(page_id, redirectID, doCommit=True)
+            dbwriter.storeRedirectForPage(dbconn, page_id, redirectID, doCommit=True)
 
 def scanCategories(ctx):
     extractor = ctx.extractor
@@ -170,7 +157,7 @@ def scanCategories(ctx):
         if len(cat_list) > 0:
             cat_list = sorted(cat_list, key=lambda x: x[1], reverse=True)
             cat = cat_list[0][0]
-        dbconn.storeCategoryForPage(page_id, cat, doCommit=True)
+        dbwriter.storeCategoryForPage(dbconn, page_id, cat, doCommit=True)
 
 def scanLinks(ctx):
     extractor = ctx.extractor
@@ -180,12 +167,12 @@ def scanLinks(ctx):
         page_id = extractor.pageIDForCurrentPage()
 
         ## 1. Get the page ID's for the outgoing links
-        link_ids = map(lambda x: dbconn.pageIDForPageTitle(x.replace(" ", "_"), doCache=True),  extractor.canonicalLinksForCurrentPage())
+        link_ids = map(lambda x: dbreader.pageIDForPageTitle(dbconn, x.replace(" ", "_"), doCache=True),  extractor.canonicalLinksForCurrentPage())
         link_ids = filter(lambda x: x is not None, link_ids)
         link_ids = list(set(link_ids))
 
         ## 2. Add outgoing links for the page to the outgoing links table
-        dbconn.storeInternalLinksForPage(page_id, link_ids)
+        dbwriter.storeInternalLinksForPage(dbconn, page_id, link_ids)
 
 def displayCategories(extractor):
     foundModels = []

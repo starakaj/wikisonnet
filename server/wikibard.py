@@ -1,4 +1,4 @@
-import dbmanager
+import dbconnect, dbreader
 import urlparse
 import pdb
 import random
@@ -56,18 +56,18 @@ def continuePoem(dbconn, page, links, excludedWord=None, excludedLines=None, pre
 
     total_runs = len(soft_constraints)+1
     for _ in range(total_runs):
-        lines = lines + dbconn.randomLines(pages=(page,), predigested=False, options=options, brandom=False, optimized=optimized, num=(num-len(lines)))
+        lines = lines + dbreader.randomLines(dbconn, pages=(page,), predigested=False, options=options, brandom=False, optimized=optimized, num=(num-len(lines)))
         print dbconn.statement
 
         # If there are no good continuations on this page, look on pages connected to this page
         if len(lines) < num:
-            more_lines = dbconn.randomLines(pages=links, predigested=True, options=options, brandom=False, optimized=optimized, num=(num-len(lines)))
+            more_lines = dbreader.randomLines(dbconn, pages=links, predigested=True, options=options, brandom=False, optimized=optimized, num=(num-len(lines)))
             lines = lines + more_lines
             print dbconn.statement
 
         # Still no good continuations? Look on the whole corpus
         if len(lines) < num:
-            more_lines = dbconn.randomLines(pages=None, options=options, brandom=False, optimized=optimized, num=(num-len(lines)))
+            more_lines = dbreader.randomLines(dbconn, pages=None, options=options, brandom=False, optimized=optimized, num=(num-len(lines)))
             lines = lines + more_lines
             print dbconn.statement
 
@@ -85,10 +85,10 @@ def continuePoem(dbconn, page, links, excludedWord=None, excludedLines=None, pre
 
     # Make sure your choices have a reasonable number of rhymes
     if rhyme is None:
-        rhyme_counts = map(lambda x:(dbconn.rhymeCountForRhyme(x['word'], x['rhyme_part'])), lines)
+        rhyme_counts = map(lambda x:(dbreader.rhymeCountForRhyme(dbconn, x['word'], x['rhyme_part'])), lines)
         total_rhymes = sum(rhyme_counts)
         total_rhymes = total_rhymes / len(lines)
-        lines = filter(lambda x: dbconn.rhymeCountForRhyme(x['word'], x['rhyme_part']) >= total_rhymes/2, lines)
+        lines = filter(lambda x: dbreader.rhymeCountForRhyme(dbconn, x['word'], x['rhyme_part']) >= total_rhymes/2, lines)
         lines = sorted(lines, key = lambda x: random.random() )
 
     return (lines, status)
@@ -122,7 +122,7 @@ def safe(str_or_none):
 
 def iPoem(pageID, db, debug_print=False, sloppy=False):
     dbconn = dbmanager.MySQLDatabaseConnection(db["database"], db["user"], db["host"], db["password"])
-    startpage = dbconn.pageTitleForPageID(pageID)
+    startpage = dbreader.pageTitleForPageID(dbconn, pageID)
 
     print("Welcome to WikiBard")
     # o = urlparse.urlparse(startpage)
@@ -131,7 +131,7 @@ def iPoem(pageID, db, debug_print=False, sloppy=False):
     print(" ")
 
     t = Timer()
-    links = dbconn.pagesLinkedFromPageID(pageID)
+    links = dbreader.pagesLinkedFromPageID(dbconn, pageID)
     poem = [None for x in range(14)]
     alter = [None for x in range(14)]
     statuses = [None for x in range(14)]
@@ -237,19 +237,3 @@ def iPoem(pageID, db, debug_print=False, sloppy=False):
     rlines = [[y['line'] for y in x] for x in alter]
     return rlines
     # return reduce(lambda a="", b="":a + "<p>" + b + "</p>", [x['line'] for x in poem])
-
-
-def printRandomPoem():
-    dbconn = dbmanager.DatabaseConnection('samtarakajian', 'samtarakajian', 'localhost', '')
-    lines = []
-    for i in range(12):
-        if i%4 < 2:
-            lines.append(dbconn.randomLines()[0])
-        else:
-            lines.append(dbconn.linesRhymingWithLine(lines[i-2])[0])
-    penultimate = dbconn.randomLines()[0]
-    ultimate = dbconn.linesRhymingWithLine(penultimate)[0]
-    lines.append(penultimate)
-    lines.append(ultimate)
-    for line in lines:
-        print(line[1])
