@@ -69,7 +69,7 @@ def pageTitleForPageID(dbconn, pageID):
     return name
 
 def followRedirectForPageID(dbconn, pageID):
-    cursor = sedbconnlf.connection.cursor()
+    cursor = dbconn.connection.cursor()
     query = """SELECT to_id FROM redirects WHERE from_id = (%s)"""
     values = (pageID,)
     cursor.execute(query, values)
@@ -81,7 +81,6 @@ def followRedirectForPageID(dbconn, pageID):
     return pageID
 
 def pagesLinkedFromPageID(dbconn, pageID):
-    pageID = dbconn.followRedirectForPageID(pageID)
     cursor = dbconn.connection.cursor()
     query = """SELECT to_id FROM page_links WHERE from_id = %s"""
     values = (pageID,)
@@ -90,6 +89,31 @@ def pagesLinkedFromPageID(dbconn, pageID):
     cursor.close()
     links = [l[0] for l in links]
     return links
+
+def categoryForPageID(dbconn, pageID, order='minor'):
+    cursor = dbconn.connection.cursor()
+    query = """SELECT minor_category, major_category FROM page_categories WHERE id=%s;"""
+    values = (pageID,)
+    cursor.execute(query, values)
+    res = cursor.fetchall()
+    if len(res)==0:
+        return None
+    elif order=='minor':
+        return res[0][0]
+    elif order=='major':
+        return res[0][1]
+    else:
+        raise ValueError("order argument must be one of ['minor', 'major']")
+
+def textForLineID(dbconn, lineID):
+    cursor = dbconn.connection.cursor()
+    query = """SELECT line FROM iambic_lines WHERE id=%s;"""
+    values = (lineID,)
+    cursor.execute(query, values)
+    res = cursor.fetchall()
+    if len(res)==0:
+        return None
+    return res[0][0]
 
 def rhymeCountForRhyme(dbconn, word, rhyme):
     cursor = dbconn.connection.cursor()
@@ -107,84 +131,84 @@ def rhymeCountForRhyme(dbconn, word, rhyme):
     cursor.close()
     return cnt[0][0]
 
-def modifiedOptions(options):
-    mod_options = {k:options[k] for k in options.keys()}
-    pos_prev_options = ["pos_0", "pos_1", "pos_m1", "pos_m2"]
-    pos_next_options = ["pos_len_m2", "pos_len_m1", "pos_len", "pos_len_p1"]
-    hashed_leading_names = ["leading_2gram", "leading_3gram", "leading_4gram"]
-    hashed_lagging_names = ["lagging_2gram", "lagging_3gram", "lagging_4gram"]
-    pos_config_sets = [{"options":pos_prev_options, "names":hashed_leading_names},
-                        {"options":pos_next_options, "names":hashed_lagging_names}]
-    # pos_option_sets = [pos_prev_options, pos_next_options]
+pos_prev_constraints = ["pos_0", "pos_1", "pos_m1", "pos_m2"]
+pos_next_constraints = ["pos_len_m2", "pos_len_m1", "pos_len", "pos_len_p1"]
+hashed_leading_names = ["leading_2gram", "leading_3gram", "leading_4gram"]
+hashed_lagging_names = ["lagging_2gram", "lagging_3gram", "lagging_4gram"]
+pos_config_sets = [{"constraints":pos_prev_constraints, "names":hashed_leading_names},
+                    {"constraints":pos_next_constraints, "names":hashed_lagging_names}]
+
+def optimizedConstraints(constraints):
+    mod_constraints = {k:constraints[k] for k in constraints}
 
     for pos_config in pos_config_sets:
 
-        pos_options = pos_config["options"]
+        pos_constraints = pos_config["constraints"]
         column_names = pos_config["names"]
 
         # Get the columns that we are going to combine into a precomputed hash for those columns
-        pos_columns = filter(lambda x: x in pos_options, options.keys())
+        pos_columns = filter(lambda x: x in pos_constraints, constraints.keys())
 
         # Check whether or not there are at least two parts of speech in question
         if len(pos_columns) >= 2:
 
             # Get a dictionary for which to compute a hash
-            dict_to_hash = {col:options[col] for col in pos_columns}
+            dict_to_hash = {col:constraints[col] for col in pos_columns}
             dict_as_sha = dbhash.columnsDictToSHA(dict_to_hash)
 
             # modify options to include the new keys
             hashed_column_name = column_names[len(pos_columns) - 2]
             for p in pos_columns:
-                mod_options.pop(p)
-            mod_options[hashed_column_name] = dict_as_sha
+                mod_constraints.pop(p)
+            mod_constraints[hashed_column_name] = dict_as_sha
 
-    return mod_options
+    return mod_constraints
 
-def randomLines(dbconn, pages=None, num=1, brandom=False, optimized=False, options=None):
+def searchForLines(dbconn, group=None, constraints=None, options=None):
 
-    t = Timer()
-
-    print options
-
-    t.begin("prepare")
-    cur = dbconn.connection.cursor(dictionary=True) ## DictCursor is best
-    query = """SELECT * FROM iambic_lines """
+    cur = dbconn.connection.cursor(dictionary=True)
+    num = options.get('num', 1)
+    brandom = options.get('random', False)
+    optimized = options.get('optimized', False)
+    query = """SELECT iambic_lines.id, word, rhyme_part, pos_m2, pos_m1, pos_0, pos_1, pos_len_m2, pos_len_m1, pos_len, pos_len_p1 FROM iambic_lines """
     valueList = [];
     continuing_where = False
-    # if optimized:
-    #     options = self.modifiedOptions(options)
-    #     if any([p in options for p in ["leading_2gram", "leading_3gram", "leading_4gram", "lagging_2gram", "lagging_3gram", "lagging_4gram"]]):
-    #         query = query + """ join pos_hashes on pos_hashes.line_id = iambic_lines.id"""
-
-    excludedWord=None
-    leadChunk=None
-    excludedLines=None
-    starts=None
-    ends=None
-    rhyme=None
+    if optimized:
+        constraints = optimizedConstraints(constraints)
+        if any([p in constraints for p in hashed_leading_names+hashed_lagging_names]):
+            query = query + """ join pos_hashes on pos_hashes.line_id = iambic_lines.id"""
+    if group and 'minor_category' in group or 'major_category' in group:
+        query = query + """ join page_categories on page_categories.id = iambic_lines.id"""
 
     ### Building WHERE clause ###
-    for key in options:
-        if key == "excludedWord":
-            query = queryWithAddedWhere(query, """ iambic_lines.word != %s""", valueList, options[key])
-        elif key == "rhyme":
-            query = queryWithAddedWhere(query, """ iambic_lines.rhyme_part = %s""", valueList, options[key])
-        elif key == "excludedLines":
-            excludedLines = options[key]
+    for key in constraints:
+        if key == "excluded_word":
+            query = queryWithAddedWhere(query, """ iambic_lines.word != %s""", valueList, constraints[key])
+        elif key == "excluded_lines":
+            excludedLines = constraints[key]
             if len(excludedLines) is 1:
                 query = queryWithAddedWhere(query, """ iambic_lines.id != %s""", valueList, excludedLines[0])
             elif len(excludedLines) is not 0:
                 format_strings = ','.join(['%s'] * len(excludedLines))
                 query = queryWithAddedWhereAppend(query, """ iambic_lines.id NOT IN (%s)""" % format_strings, valueList, list(excludedLines))
         else:
-            query = queryWithAddedWhere(query, """ iambic_lines.""" + key + """ = %s""", valueList, options[key])
+            if key in hashed_leading_names + hashed_lagging_names:
+                query = queryWithAddedWhere(query, """ pos_hashes.""" + key + """ = %s""", valueList, constraints[key])
+            else:
+                query = queryWithAddedWhere(query, """ iambic_lines.""" + key + """ = %s""", valueList, constraints[key])
 
-    if pages:
-        if len(pages) is 1:
-            query = queryWithAddedWhere(query, """ page_id = %s""", valueList, pages[0])
-        else:
-            format_strings = ','.join(['%s'] * len(pages))
-            query = queryWithAddedWhereAppend(query, """ page_id IN (%s)""" % format_strings, valueList, list(pages))
+    if group:
+        if 'pageIDs' in group:
+            pages = group['pageIDs']
+            if len(pages) is 1:
+                query = queryWithAddedWhere(query, """ page_id = %s""", valueList, pages[0])
+            else:
+                format_strings = ','.join(['%s'] * len(pages))
+                query = queryWithAddedWhereAppend(query, """ page_id IN (%s)""" % format_strings, valueList, list(pages))
+        if 'minor_category' in group:
+            query = queryWithAddedWhere(query, """ minor_category = %s""", valueList, group['minor_category'])
+        if 'major_category' in group:
+            query = queryWithAddedWhere(query, """ major_category = %s""", valueList, group['major_category'])
     ### WHERE ###
 
     if brandom:
@@ -193,17 +217,13 @@ def randomLines(dbconn, pages=None, num=1, brandom=False, optimized=False, optio
     query = query + """ LIMIT %s;"""
     valueList.append(num)
     values = tuple(valueList)
-    t.end("prepare")
-
-    t.begin("execute")
-
-    execute_timer = Timer()
-    cur.execute(query, values)
-    dbconn.statement = cur.statement
-    print cur.statement
+    try:
+        cur.execute(query, values)
+    except Exception as e:
+        print cur.statement
+        raise e
+    if options.get('print_statement', False):
+        print cur.statement
     res = cur.fetchall()
     cur.close()
-    t.end("execute")
-    dbconn.execution_time = execute_timer.elapsed()
-    t.printTime()
     return res
