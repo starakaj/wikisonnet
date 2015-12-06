@@ -93,18 +93,6 @@ def continuePoem(dbconn, page, links, excludedWord=None, excludedLines=None, pre
 
     return (lines, status)
 
-def chooseContinuation(lines, count, poem):
-    if len(lines)==0:
-        return None
-    # lines = sorted(lines, key = lambda x: random.random() )
-    return lines[0]
-    print(" ")
-    printPoemSoFar(poem)
-    for i in range(min(len(lines), count)):
-        print(str(i+1) + ": " + lines[i][3])
-    i = input("Choose continuation:")
-    return lines[i-1]
-
 def printPoemSoFar(poem, statuses):
     print(" ")
     for i,p in enumerate(poem):
@@ -120,15 +108,40 @@ def safe(str_or_none):
         return ''
     return str_or_none
 
+def compute_possible_lines(hard_constraints, flexible_constraints, search_groups, composed_lines):
+
+    for i in range(flexible_constraints):
+        this_flexible_constraints = flexible_constraints[:len(flexible_constraints)-i]
+        for group in search_groups:
+            possible_lines.append(fetch_possible_lines(hard_constraints, this_flexible_constraints, group, composed_lines))
+
+        if possible_lines.count >= REQUIRED_POSSIBILITY_COUNT:
+            break
+
+    return possible_lines
+
+def poemForPageID(pageID, dbconfig):
+    dbconn = dbmanager.MySQLDatabaseConnection(dbconfig["database"], dbconfig["user"], dbconfig["host"], dbconfig["password"])
+
+    ## Get the groups associated with a given page (perhaps construct table views for speed?)
+    links = dbreader.pagesLinkedFromPageID(dbconn, pageID)
+
+    composed_lines = []
+
+    for line_plan in lines_to_write:
+        hard_constraints = line_plan.hard_constraints
+        flexible_constraints = line_plan.flexible_constraints
+        search_groups = line_plan.search_groups
+        possible_lines = compute_possible_lines(hard_constraints, flexible_constraints, search_groups, composed_lines)
+        next_line = get_best_line(possible_lines)
+        composed_lines[next_idx] = next_line
+
+    return composed_lines
+
+
 def iPoem(pageID, db, debug_print=False, sloppy=False):
     dbconn = dbmanager.MySQLDatabaseConnection(db["database"], db["user"], db["host"], db["password"])
     startpage = dbreader.pageTitleForPageID(dbconn, pageID)
-
-    print("Welcome to WikiBard")
-    # o = urlparse.urlparse(startpage)
-    # startpage = o.path.split('/')[-1]
-    print("Composing a sonnet starting on " + startpage)
-    print(" ")
 
     t = Timer()
     links = dbreader.pagesLinkedFromPageID(dbconn, pageID)
