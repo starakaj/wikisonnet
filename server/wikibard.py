@@ -7,8 +7,8 @@ import copy
 from multiprocessing import Pool
 from benchmarking import Timer
 
-optimized = False
-REQUIRED_POSSIBILITY_COUNT = 10
+optimized = True
+REQUIRED_POSSIBILITY_COUNT = 20
 
 n2p = {
     "pos_len_m1":"pos_m1",
@@ -68,7 +68,8 @@ def flexibleConstraints(line_index, poem_form, completed_lines):
     return fc
 
 def fetchPossibleLines(dbconn, search_constraints, group, composed_lines, num=REQUIRED_POSSIBILITY_COUNT):
-    options={"num":num, "random":False, "optimized":True, "print_statement":True}
+    is_random = 'pageIDs' in group
+    options={"num":num, "random":is_random, "optimized":optimized, "print_statement":True}
     return dbreader.searchForLines(dbconn, group, search_constraints, options)
 
 def computePossibleLines(dbconn, hard_constraints, flexible_constraints, search_groups, composed_lines):
@@ -96,13 +97,24 @@ def computePossibleLines(dbconn, hard_constraints, flexible_constraints, search_
 
     return possible_lines
 
-def getBestLines(dbconn, hard_constraints, lines, count=1):
+def getBestLines(dbconn, hard_constraints, lines, poem_form, line_index, count=1):
     if 'rhyme_part' not in hard_constraints:
         rhyme_counts = map(lambda x:(dbreader.rhymeCountForRhyme(dbconn, x['word'], x['rhyme_part'])), lines)
         total_rhymes = sum(rhyme_counts)
         total_rhymes = total_rhymes / len(lines)
         lines = filter(lambda x: dbreader.rhymeCountForRhyme(dbconn, x['word'], x['rhyme_part']) >= total_rhymes/2, lines)
-        lines = sorted(lines, key = lambda x: random.random() )
+
+    ## Sort based on how you're likely to continue
+    if (not poem_form.lines[line_index].starts and
+        poem_form.order[line_index] < poem_form.order[line_index-1]
+        ):
+        lines = sorted(lines, key = lambda x: dbreader.posCountsForLine(dbconn, x, 'leading'), reverse=True )
+    elif (not poem_form.lines[line_index].ends and
+        poem_form.order[line_index] < poem_form.order[line_index+1]
+        ):
+        lines = sorted(lines, key = lambda x: dbreader.posCountsForLine(dbconn, x, 'lagging'), reverse=True )
+    else:
+        lines = sorted(lines, key = lambda x: random.random())
     return lines[:count]
 
 def composeLinesAtIndexes(pageID, poem_form, dbconfig, search_groups, composed_lines, indexes):
@@ -113,7 +125,7 @@ def composeLinesAtIndexes(pageID, poem_form, dbconfig, search_groups, composed_l
             hard_constraints = hardConstraints(idx, poem_form, ret_composed_lines)
             flexible_constraints = flexibleConstraints(idx, poem_form, ret_composed_lines)
             possible_lines = computePossibleLines(dbconn, hard_constraints, flexible_constraints, search_groups, ret_composed_lines)
-            next_lines = getBestLines(dbconn, hard_constraints, possible_lines, 1)
+            next_lines = getBestLines(dbconn, hard_constraints, possible_lines, poem_form, idx, 1)
             ret_composed_lines[idx] = next_lines[0]
     dbconn.close()
     return ret_composed_lines
@@ -148,7 +160,7 @@ def poemForPageID(pageID, sonnet_form_name, dbconfig):
         hard_constraints = hardConstraints(idx, poem_form, composed_lines)
         flexible_constraints = flexibleConstraints(idx, poem_form, composed_lines)
         possible_lines = computePossibleLines(dbconn, hard_constraints, flexible_constraints, search_groups, composed_lines)
-        starting_lines = getBestLines(dbconn, hard_constraints, possible_lines, len(parallel_starts))
+        starting_lines = getBestLines(dbconn, hard_constraints, possible_lines, poem_form, idx, len(parallel_starts))
         for i,l in enumerate(starting_lines):
             composed_lines[parallel_starts[i].index] = l
 
@@ -158,7 +170,7 @@ def poemForPageID(pageID, sonnet_form_name, dbconfig):
         hard_constraints = hardConstraints(idx, poem_form, composed_lines)
         flexible_constraints = flexibleConstraints(idx, poem_form, composed_lines)
         possible_lines = computePossibleLines(dbconn, hard_constraints, flexible_constraints, search_groups, composed_lines)
-        ending_lines = getBestLines(dbconn, hard_constraints, possible_lines, len(parallel_ends))
+        ending_lines = getBestLines(dbconn, hard_constraints, possible_lines, poem_form, idx, len(parallel_ends))
         for i,l in enumerate(ending_lines):
             composed_lines[parallel_ends[i].index] = l
 

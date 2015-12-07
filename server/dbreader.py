@@ -138,6 +138,27 @@ hashed_lagging_names = ["lagging_2gram", "lagging_3gram", "lagging_4gram"]
 pos_config_sets = [{"constraints":pos_prev_constraints, "names":hashed_leading_names},
                     {"constraints":pos_next_constraints, "names":hashed_lagging_names}]
 
+## line must be a dictionary containing the keys for either a lagging 4gram or a leading 4gram
+def posCountsForLine(dbconn, line, position='leading'):
+    cursor = dbconn.connection.cursor()
+
+    if position=='leading':
+        dict_to_hash = {k:line[k] for k in line if k in pos_next_constraints}
+        query = """SELECT COUNT(*) FROM leading_pos_counts WHERE leading_4gram=%s"""
+        values = (dbhash.columnsDictToSHA(dict_to_hash), )
+    elif position=='lagging':
+        dict_to_hash = {k:line[k] for k in line if k in pos_prev_constraints}
+        query = """SELECT COUNT(*) FROM lagging_pos_counts WHERE lagging_4gram=%s"""
+        values = (dbhash.columnsDictToSHA(dict_to_hash), )
+    else:
+        raise ValueError("position must be one of ['leading', 'lagging']")
+
+    cursor.execute(query, values)
+    res = cursor.fetchall()
+    if len(res) > 0:
+        return res[0][0]
+    return 0
+
 def optimizedConstraints(constraints):
     mod_constraints = {k:constraints[k] for k in constraints}
 
