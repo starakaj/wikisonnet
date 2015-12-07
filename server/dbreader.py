@@ -1,7 +1,6 @@
 import dbhash
 import random
 from benchmarking import Timer
-import scraper.dbreformatting as dbreformatting
 
 def queryWithAddedWhere(query, phrase, valueList, appendedValue=None):
     continuing_where = False
