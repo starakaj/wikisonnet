@@ -137,20 +137,29 @@ def columnAndKeyForPOSColumnsWithRhyme(rhyme, columns={}, isPrevious=True):
     key = ("""prev""" if isPrevious else """next""") + """key""" + str(len(columns)-1)
     return (key, hashlib.sha1(json.dumps(columns, sort_keys=True)).digest())
 
-def countTrailingPOS(commit_interval=1000, print_interval=1000):
-    read_conn = mysql.connector.connect(user="william", password="Sh4kespeare", host="localhost", database="wikisonnet", charset='utf8', use_unicode=True)
-    write_conn = mysql.connector.connect(user="william", password="Sh4kespeare", host="localhost", database="wikisonnet", charset='utf8', use_unicode=True)
+leading_pos_keys = ['pos_m2', "pos_m1", 'pos_0', 'pos_1']
+lagging_pos_keys = ['pos_len_m2', 'pos_len_m1', 'pos_len', 'pos_len_p1']
+def countPOS(commit_interval=1000, print_interval=1000):
+    read_conn = mysql.connector.connect(user="william", password="Sh4kespeare", host="localhost", database="wikisonnet")
+    write_conn = mysql.connector.connect(user="william", password="Sh4kespeare", host="localhost", database="wikisonnet")
     read_cursor = read_conn.cursor(dictionary=True)
     write_cursor = write_conn.cursor()
-    query = """SELECT pos_len_m2, pos_len_m1, pos_len, pos_len_p1 FROM iambic_lines"""
+    query = """SELECT """ + ", ".join(leading_pos_keys + lagging_pos_keys) + """ FROM iambic_lines"""
     read_cursor.execute(query)
     written = 0
     toWrite = read_cursor.rowcount
     commit_timer = commit_interval
     print_timer = print_interval
     for row in read_cursor:
-        query = """INSERT INTO trailing_pos_counts (tail_sha, pos_len_m2, pos_len_m1, pos_len, pos_len_p1, count) VALUES (%s, %s, %s, %s, %s, 1) ON DUPLICATE KEY UPDATE count=count+1;"""
-        values = (columnsDictToSHA(row), row['pos_len_m2'], row['pos_len_m1'], row['pos_len'], row['pos_len_p1'])
+        leading_dict = {k:row[k] for k in row if k in leading_pos_keys}
+        lagging_dict = {k:row[k] for k in row if k in lagging_pos_keys}
+
+        query = """INSERT INTO leading_pos_counts (leading_4gram, count) VALUES (%s, 1) ON DUPLICATE KEY UPDATE count=count+1;"""
+        values = (columnsDictToSHA(leading_dict), )
+        write_cursor.execute(query, values)
+
+        query = """INSERT INTO lagging_pos_counts (lagging_4gram, count) VALUES (%s, 1) ON DUPLICATE KEY UPDATE count=count+1;"""
+        values = (columnsDictToSHA(lagging_dict), )
         write_cursor.execute(query, values)
 
         written = written+1

@@ -68,48 +68,31 @@ def scan(extractor_filename, methods=[], startIdx=0, skipevery=1, offset=0):
     dbconn.connection.commit()
     print "Scan complete!"
 
-def scanIambic(extractor, dbconn):
-    print "Beginning scan:"
+def scanIambic(ctx):
+    extractor = ctx.extractor
+    dbconn = ctx.dbconn
 
-    page_idx = 0
-    page_count = 0 ## extractor.page_count()
+    ## Skip if redirect
+    redirect = extractor.redirectTitleForCurrentPage()
+    if redirect is not None:
+        return
 
-    for ex in extractor:
-        page_idx = page_idx+1
-        if (page_idx < 10052905):
-            continue
-        if page_idx%3!=0:
-            continue
-        title = extractor.titleForCurrentPage()
-        if title.split(":")[0] == "MediaWiki":
-            continue
-        if title.split(":")[0] == "File":
-            continue
-        print "\tScanning page %d of %d, %s" % (page_idx, page_count, extractor.titleForCurrentPage())
-
-        ## Skip if redirect
-        redirect = extractor.redirectTitleForCurrentPage()
-        if redirect is not None:
-            continue
-
-        try:
-            ptext = extractor.textForCurrentPage()
-        except:
-            print "Error parsing text"
-            continue
-        pageID = extractor.pageIDForCurrentPage()
-        iambic_runs = findIambsForPages(ptext, pageID)
-        for run in iambic_runs:
-            words = run.text.split()
-            if wordutils.make_safe(words[-1]) not in wordutils.banned_end_words:
-                rhyme_part = wordutils.rhyming_part(wordutils.make_safe(words[-1]))
-                rhyme_part = "".join(rhyme_part)
-                try:
-                    dbwriter.storePoemLine(dbconn, pageID, wordutils.make_safe(words[-1]), run.text, run.pos, rhyme_part, run.options)
-                except:
-                    print "store line error"
-
-    print "Scan complete!"
+    try:
+        ptext = extractor.textForCurrentPage()
+    except:
+        print "Error parsing text"
+        return
+    pageID = extractor.pageIDForCurrentPage()
+    iambic_runs = findIambsForPages(ptext, pageID)
+    for run in iambic_runs:
+        words = run.text.split()
+        if wordutils.make_safe(words[-1]) not in wordutils.banned_end_words:
+            rhyme_part = wordutils.rhyming_part(wordutils.make_safe(words[-1]))
+            rhyme_part = "".join(rhyme_part)
+            try:
+                dbwriter.storePoemLine(dbconn, pageID, wordutils.make_safe(words[-1]), run.text, run.pos, rhyme_part, run.options)
+            except:
+                print "store line error"
 
 def countPages(extractor, limit=-1):
     page_idx = 0
