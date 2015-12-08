@@ -1,4 +1,5 @@
 import mysql.connector
+import os, yaml
 
 class MySQLDatabaseConnection:
     def __init__(self, dbname, user, host, password, options=None):
@@ -18,11 +19,15 @@ class MySQLDatabaseConnection:
                     print 'Ignoring unrecognized option {}'.format(k)
 
     @staticmethod
-    def connectionWithConfiguration(config):
+    def dbconfigForName(config_name):
         filename = os.path.join(os.path.dirname(__file__), 'dbconfig.yml')
         f = open(filename, 'r')
         databases = yaml.load(f)
-        dbconfig = databases[config]
+        return databases[config_name]
+
+    @staticmethod
+    def connectionWithConfiguration(config):
+        dbconfig = MySQLDatabaseConnection.dbconfigForName(config)
         return MySQLDatabaseConnection(dbconfig['database'], dbconfig['user'], dbconfig['host'], dbconfig['password'])
 
     def close(self):

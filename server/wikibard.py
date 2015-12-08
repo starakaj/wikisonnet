@@ -69,7 +69,7 @@ def flexibleConstraints(line_index, poem_form, completed_lines):
 
 def fetchPossibleLines(dbconn, search_constraints, group, composed_lines, num=REQUIRED_POSSIBILITY_COUNT):
     is_random = 'pageIDs' in group
-    options={"num":num, "random":is_random, "optimized":optimized, "print_statement":True}
+    options={"num":num, "random":is_random, "optimized":optimized, "print_statement":False}
     return dbreader.searchForLines(dbconn, group, search_constraints, options)
 
 def computePossibleLines(dbconn, hard_constraints, flexible_constraints, search_groups, composed_lines):
@@ -90,8 +90,6 @@ def computePossibleLines(dbconn, hard_constraints, flexible_constraints, search_
             possible_lines += fetchPossibleLines(dbconn, search_constraints, group, composed_lines, num)
             if len(possible_lines) >= REQUIRED_POSSIBILITY_COUNT:
                 break
-            print possible_lines
-            print " "
         if len(possible_lines) >= REQUIRED_POSSIBILITY_COUNT:
             break
 
@@ -186,6 +184,7 @@ def poemForPageID(pageID, sonnet_form_name, dbconfig):
                 if p[i] is not None:
                     composed_lines[i] = p[i]
                     break
+    dbconn.close()
     return composed_lines
 
 def poemStringForPoemLines(dbconn, lines):
