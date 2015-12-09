@@ -19,6 +19,8 @@ def pageIDForPageTitle(title):
     return pageID
 
 def imagesForPageTitle(title):
+    #just gotta sanitize the input
+    title = title.replace("_", " ")
     page = wikipedia.page(title)
     if page:
         images = [x for x in page.images if not "Commons-logo" in x]
