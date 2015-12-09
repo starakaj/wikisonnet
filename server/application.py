@@ -5,6 +5,7 @@ import yaml
 import dotmatrix
 from flask.ext.cors import CORS
 import wikipedia
+import requests
 
 print_to_dot_matrix = True
 
@@ -22,7 +23,9 @@ def search():
     query = query.replace("_", " ")
     print("Searching!")
     print(query)
-    results = wikipedia.search(query)
+    payload = {'action': 'opensearch', 'limit': '10', 'format': 'json', 'search': query}
+    response = requests.get("https://en.wikipedia.org/w/api.php", payload)
+    results = response.json()[1]
     print(results)
     updated_results = []
     for result in results:
