@@ -2,7 +2,6 @@ import dbreader, dbconnect
 import wikibard
 import wikipedia
 import random
-from IPython import embed
 
 # Change this if you'd like to use a local database or something
 dbconfigname = 'local'
