@@ -13,6 +13,11 @@ def removeTrailing(img_link):
             img_link = img_link[:img_link.find(fmt)+len(fmt)]
             break
 
+def pageIDForPageTitle(title):
+    dbconn = dbconnect.MySQLDatabaseConnection.connectionWithConfiguration(dbconfigname)
+    pageID = dbreader.pageIDForPageTitle(dbconn, title)
+    return pageID
+
 def imagesForPageTitle(title):
     page = wikipedia.page(title)
     if page:
