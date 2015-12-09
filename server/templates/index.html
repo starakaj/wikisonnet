@@ -2,15 +2,18 @@
 
 {% block content %}
 
-<div class="text-center">
-  <h1>Wikisonnet</h1>
-</div>
-<div>
-  </p>https://en.wikipedia.org/wiki/
-  <form class="search-form" action="/compose" method="POST">
-      <input name="query" type="text" id="search"></input>
-      <button class="btn btn-default" id="submit-button" type="submit" disabled>Generate Poem</button>
-  </form>
-  </p>
+<div class="container">
+  <div class="row">
+    <div class="text-center col-xs-12 col-sm-12 col-md-12 col-lg-12">
+      <h1>Wikisonnet</h1>
+    </div>
+  </div>
+  <div class="row text-center">
+    <p class="search-form__label">https://en.wikipedia.org/wiki/</p>
+    <form class="search-form" action="/compose" method="POST">
+        <input class="search-form__input form-control" name="query" type="text" id="search"></input>
+        <button class="btn btn-primary" id="submit-button" type="submit" disabled>Generate Poem</button>
+    </form>
+  </div>
 </div>
 {% endblock %}

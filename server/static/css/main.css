@@ -1,9 +1,21 @@
 /* custom styles */
 
-.container {
+/*.container {
   max-width: 500px;
-}
+}*/
 
 .search-form {
   display: inline-block;
+}
+
+.search-form__label {
+  display: inline-block;
+  color: blue;
+  font-weigth: bold;
+  text-decoration: underline;
+}
+
+.search-form__input {
+  display: inline-block;
+  width: auto;
 }

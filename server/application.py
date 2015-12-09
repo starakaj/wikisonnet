@@ -19,6 +19,7 @@ def index():
 @application.route('/search', methods=['GET'])
 def search():
     query = request.args.get('q')
+    query = query.replace("_", " ")
     print("Searching!")
     print(query)
     results = wikipedia.search(query)
