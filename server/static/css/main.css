@@ -4,6 +4,14 @@
   max-width: 500px;
 }*/
 
+.index__title {
+  padding-bottom: 30px;
+}
+
+.index__byline {
+  padding-bottom: 30px;
+}
+
 .search-form {
   display: inline-block;
 }
@@ -25,4 +33,14 @@
      url('http://www.hsi.com.hk/HSI-Net/pages/images/en/share/ajax-loader.gif')
      no-repeat
      right center;
+}
+
+.sonnet__image {
+  max-height: 485px;
+  width: auto;
+  max-width: 100%;
+}
+
+.sonnet__title {
+  padding-bottom: 50px;
 }
