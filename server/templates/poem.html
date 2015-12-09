@@ -1,0 +1,17 @@
+{% extends "_base.html" %}
+
+{% block content %}
+
+<div class="text-center">
+  <h1>{{title}}</h1>
+  {% for line in poem_lines %}
+    <p>{{line}}</p>
+  {% else %}
+    <p>so much depends on a red wheelbarrow</p>
+  {% endfor %}
+  {% if image is defined %}
+    <img src={{image}}>
+  {% endif %}
+</div>
+
+{% endblock %}

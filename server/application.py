@@ -2,7 +2,10 @@ from flask import Flask, abort, jsonify, request, render_template
 import wikibard, wikiserver
 from  werkzeug.debug import get_current_traceback
 import yaml
+import dotmatrix
 from flask.ext.cors import CORS
+
+print_to_dot_matrix = True
 
 # EB looks for an 'application' callable by default.
 application = Flask(__name__)
@@ -17,6 +20,11 @@ def compose(title):
     poem = wikiserver.poemForPageTitle(title)
     poem_lines = poem.split('\n')
     images = wikiserver.imagesForPageTitle(title)
+    title = title.replace("_", " ")
+
+    if print_to_dot_matrix:
+        dotmatrix.printPoem(title, poem_lines)
+
     if images:
         image = images[0]
         return render_template('poem.html', title=title, poem_lines=poem_lines, image=image)
