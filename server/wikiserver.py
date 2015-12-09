@@ -2,7 +2,6 @@ import dbreader, dbconnect
 import wikibard
 import wikipedia
 import random
-from IPython import embed
 
 # Change this if you'd like to use a local database or something
 dbconfigname = 'local'
@@ -13,6 +12,11 @@ def removeTrailing(img_link):
         if fmt in img_link:
             img_link = img_link[:img_link.find(fmt)+len(fmt)]
             break
+
+def pageIDForPageTitle(title):
+    dbconn = dbconnect.MySQLDatabaseConnection.connectionWithConfiguration(dbconfigname)
+    pageID = dbreader.pageIDForPageTitle(dbconn, title)
+    return pageID
 
 def imagesForPageTitle(title):
     #just gotta sanitize the input
