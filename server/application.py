@@ -1,4 +1,4 @@
-from flask import Flask, abort, jsonify, request, render_template
+from flask import Flask, abort, jsonify, request, render_template, redirect, url_for
 import wikibard, wikiserver
 from  werkzeug.debug import get_current_traceback
 import yaml
@@ -33,9 +33,13 @@ def search():
 @application.route('/compose', methods=['POST'])
 def compose():
     title = request.form.get("query")
-    page = wikipedia.page(title.replace("_", " "))
+    try:
+        page = wikipedia.page(title.replace("_", " "))
+    except wikipedia.exceptions.DisambiguationError:
+        return redirect(url_for('index'))
+
     if not page:
-        return render_template('index.html')
+        return redirect(url_for('index'))
     print("Composing poem for " + title)
     poem = wikiserver.poemForPageTitle(title)
     poem_lines = poem.split('\n')
