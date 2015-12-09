@@ -4,6 +4,7 @@ from  werkzeug.debug import get_current_traceback
 import yaml
 import dotmatrix
 from flask.ext.cors import CORS
+import wikipedia
 
 print_to_dot_matrix = True
 
@@ -15,8 +16,23 @@ cors = CORS(application, resources={r"/api/*": {"origins": "*"}})
 def index():
     return render_template('index.html')
 
-@application.route('/compose/<title>', methods=['GET'])
-def compose(title):
+@application.route('/search', methods=['GET'])
+def search():
+    query = request.args.get('q')
+    print("Searching!")
+    print(query)
+    results = wikipedia.search(query)
+    print(results)
+    updated_results = []
+    for result in results:
+        updated_results.append(result.replace(" ", "_"))
+    return jsonify(list=updated_results)
+
+
+@application.route('/compose', methods=['POST'])
+def compose():
+    title = request.form.get("query")
+    print("Composing poem for " + title)
     poem = wikiserver.poemForPageTitle(title)
     poem_lines = poem.split('\n')
     images = wikiserver.imagesForPageTitle(title)
@@ -35,4 +51,4 @@ def compose(title):
 if __name__ == "__main__":
     application.debug = False
     application.testing = True
-    application.run()
+    application.run(threaded=True)

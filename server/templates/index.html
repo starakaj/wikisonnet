@@ -3,7 +3,14 @@
 {% block content %}
 
 <div class="text-center">
-  <h1>Welcome to Wikisonnet!</h1>
+  <h1>Wikisonnet</h1>
 </div>
-
+<div>
+  </p>https://en.wikipedia.org/wiki/
+  <form class="search-form" action="/compose" method="POST">
+      <input name="query" type="text" id="search"></input>
+      <button class="btn btn-default" id="submit-button" type="submit" disabled>Generate Poem</button>
+  </form>
+  </p>
+</div>
 {% endblock %}

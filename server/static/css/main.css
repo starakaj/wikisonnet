@@ -3,3 +3,7 @@
 .container {
   max-width: 500px;
 }
+
+.search-form {
+  display: inline-block;
+}
