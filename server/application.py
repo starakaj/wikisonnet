@@ -36,8 +36,8 @@ def compose():
     print("Composing poem for " + title)
     poem = wikiserver.poemForPageTitle(title)
     poem_lines = poem.split('\n')
-    images = wikiserver.imagesForPageTitle(title)
     title = title.replace("_", " ")
+    images = wikiserver.imagesForPageTitle(title)
 
     if print_to_dot_matrix:
         dotmatrix.printPoem(title, poem_lines)
