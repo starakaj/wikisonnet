@@ -33,6 +33,9 @@ def search():
 @application.route('/compose', methods=['POST'])
 def compose():
     title = request.form.get("query")
+    page = wikipedia.page(title.replace("_", " "))
+    if (!page):
+        return render_template('index.html') 
     print("Composing poem for " + title)
     poem = wikiserver.poemForPageTitle(title)
     poem_lines = poem.split('\n')

@@ -15,6 +15,8 @@ def removeTrailing(img_link):
             break
 
 def imagesForPageTitle(title):
+    #just gotta sanitize the input
+    title = title.replace("_", " ")
     page = wikipedia.page(title)
     if page:
         images = [x for x in page.images if not "Commons-logo" in x]
