@@ -2,11 +2,12 @@ from __future__ import print_function
 import os
 import urllib
 from pyfiglet import figlet_format
+import codecs
 
 tc = "  "
 
 def printPoem(title, poem_lines, imageURL=None):
-    with open('/tmp/poem.txt', 'w') as f:
+    with codecs.open('/tmp/poem.txt','w',encoding='utf8') as f:
         if imageURL is not None:
             for row in img_as_text:
                 print(row, file=f)
