@@ -45,6 +45,10 @@
   padding-bottom: 50px;
 }
 
+.sonnet__new {
+  padding-top: 50px;
+}
+
 .hidden {
   display: none;
 }
