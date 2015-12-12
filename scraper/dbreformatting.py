@@ -1,7 +1,12 @@
-from server.dbhash import columnsDictToSHA
+# from dbhash import columnsDictToSHA
 import mysql.connector
 import hashlib
 import json
+import server.benchmarking as benchmarking
+from server.wikibard import poemForPageID
+from server.wikibard import poemStringForPoemLines
+import itertools
+from multiprocessing import Pool
 
 def updateRhymeCounts(dbconn):
     cursor=dbconn.connection.cursor()
@@ -221,3 +226,72 @@ def populatePOSHashes(commit_interval=1000, print_interval=1000):
     read_cursor.close()
     read_conn.close()
     write_conn.close()
+
+def cachePoemForPageID(pageID):
+    import server.dbconnect as dbconnect
+
+    ## Create the row for the cached posStringForPoemLines
+    write_conn = mysql.connector.connect(user="william", password="Sh4kespeare", host="localhost", database="cached_poems")
+    cursor = write_conn.cursor()
+    query = """INSERT INTO cached_poems (page_id) VALUES (%s);"""
+    values = (pageID,)
+    cursor.execute(query, values)
+    cursor.execute("""COMMIT;""");
+    query = """SELECT LAST_INSERT_ID();"""
+    cursor.execute(query)
+    res = cursor.fetchall()
+    poem_id = res[0][0]
+
+    ## Write the poem
+    dbconfig = dbconnect.MySQLDatabaseConnection.dbconfigForName('local')
+    poem = poemForPageID(pageID, 'elizabethan', dbconfig)
+    line_ids = [line['id'] for line in poem]
+
+    ## Store the poem
+    query = (
+        """UPDATE cached_poems SET"""
+        """ line_0=%s, line_1=%s, line_2=%s, line_3=%s,"""
+        """ line_4=%s, line_5=%s, line_6=%s, line_7=%s,"""
+        """ line_8=%s, line_9=%s, line_10=%s, line_11=%s,"""
+        """ line_12=%s, line_13=%s, complete=1"""
+        """ WHERE id=%s;"""
+    )
+    values = tuple(line_ids + [poem_id])
+    cursor.execute(query, values)
+    cursor.execute("""COMMIT;""");
+    write_conn.close()
+
+def printCachedPoemForID(poemID):
+    import server.dbconnect as dbconnect
+    read_conn = mysql.connector.connect(user="william", password="Sh4kespeare", host="localhost", database="cached_poems")
+    cursor = read_conn.cursor()
+    query = """SELECT * FROM cached_poems WHERE id=%s;"""
+    values = (poemID,)
+    cursor.execute(query, values)
+    res = cursor.fetchall()
+    if len(res) > 0:
+        dbconn = dbconnect.MySQLDatabaseConnection.connectionWithConfiguration('local')
+        poem = [{'id':res[0][i+2]} for i in range(14)]
+        print poemStringForPoemLines(dbconn, poem)
+
+def writeCachedPoems(limit=10, count=10):
+    import server.dbconnect as dbconnect
+    read_conn = mysql.connector.connect(user="william", password="Sh4kespeare", host="localhost", database="wikisonnet")
+    cursor = read_conn.cursor()
+
+    ## Get a whole bunch of poem id's
+    query = """SELECT page_id FROM page_names LIMIT %s;"""
+    values = (limit,)
+    cursor.execute(query, values)
+    res = cursor.fetchall()
+    tasks = [[x[0] for _ in range(count)] for x in res]
+    tasks = list(itertools.chain.from_iterable(tasks))
+    read_conn.close()
+
+    t = benchmarking.Timer()
+    pool = Pool(processes=30)
+    t.begin("writing")
+    results = [pool.apply_async(cachePoemForPageID, args=(x,)) for x in tasks]
+    output = [p.get() for p in results]
+    t.end("writing")
+    t.printTime()

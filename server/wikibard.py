@@ -174,8 +174,9 @@ def poemForPageID(pageID, sonnet_form_name, dbconfig):
 
     ## Now compose each stanza in parallel
     stanzas = makeStanzas(parallel_starts, parallel_ends, poem_form)
-    pool = Pool(4)
-    poem_pieces = [pool.apply(composeLinesAtIndexes, args=(pageID, poem_form, dbconfig, search_groups, composed_lines, x)) for x in stanzas]
+    poem_pieces = [composeLinesAtIndexes(pageID, poem_form, dbconfig, search_groups, composed_lines, x) for x in stanzas]
+    # pool = Pool(4)
+    # poem_pieces = [pool.apply(composeLinesAtIndexes, args=(pageID, poem_form, dbconfig, search_groups, composed_lines, x)) for x in stanzas]
 
     ## Piece the results back together
     for i,l in enumerate(composed_lines):
