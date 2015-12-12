@@ -7,7 +7,7 @@ from flask.ext.cors import CORS
 import wikipedia
 import requests
 
-print_to_dot_matrix = True
+print_to_dot_matrix = False
 
 # EB looks for an 'application' callable by default.
 application = Flask(__name__)

@@ -24,4 +24,11 @@ $(function() {
       $("#submit-button").prop("disabled", false);
     }
   });
+
+  $(".search-form").submit(function(event) {
+    $(this).hide();
+    $("#fountainTextG").removeClass("hidden");
+  });
+
+
 });
