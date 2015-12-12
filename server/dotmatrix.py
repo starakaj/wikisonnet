@@ -14,6 +14,8 @@ def printPoem(title, poem_lines, imageURL=None):
         # banner = figlet_format(title, font='alphabet').split('\n')
         # for l in banner:
         #     print(l, file=f)
+        print("\n", file=f)
+        print("\n", file=f)
         print(title, file=f)
         print("\n", file=f)
         for i,line in enumerate(poem_lines):
