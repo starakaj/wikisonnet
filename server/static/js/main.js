@@ -27,6 +27,7 @@ $(function() {
 
   $(".search-form").submit(function(event) {
     $(this).hide();
+    $("#index__error").hide();
     $("#fountainTextG").removeClass("hidden");
   });
 

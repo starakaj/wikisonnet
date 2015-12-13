@@ -18,6 +18,11 @@
         <button class="btn btn-primary" id="submit-button" type="submit" disabled>Generate Poem</button>
     </form>
   </div>
+  {% if error is defined %}
+    <div id="index__error" class="text-center col-xs-12 col-sm-12 col-md-12 col-lg-12">
+      <h2 class="index__error">{{error}}</h2>
+    </div>
+  {% endif %}
   <div class="row text-center">
     <div id="fountainTextG" class="fountainTextWrapper hidden">
       <div id="fountainTextG_1" class="fountainTextG">G</div><div id="fountainTextG_2" class="fountainTextG">e</div><div id="fountainTextG_3" class="fountainTextG">n</div><div id="fountainTextG_4" class="fountainTextG">e</div><div id="fountainTextG_5" class="fountainTextG">r</div><div id="fountainTextG_6" class="fountainTextG">a</div><div id="fountainTextG_7" class="fountainTextG">t</div><div id="fountainTextG_8" class="fountainTextG">i</div><div id="fountainTextG_9" class="fountainTextG">n</div><div id="fountainTextG_10" class="fountainTextG">g</div><div id="fountainTextG_11" class="fountainTextG"> </div><div id="fountainTextG_12" class="fountainTextG">p</div><div id="fountainTextG_13" class="fountainTextG">o</div><div id="fountainTextG_14" class="fountainTextG">e</div><div id="fountainTextG_15" class="fountainTextG">m</div><div id="fountainTextG_16" class="fountainTextG">.</div><div id="fountainTextG_17" class="fountainTextG">.</div><div id="fountainTextG_18" class="fountainTextG">.</div>

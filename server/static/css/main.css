@@ -12,6 +12,10 @@
   padding-bottom: 30px;
 }
 
+.index__error {
+  color: red;
+}
+
 .search-form {
   display: inline-block;
 }

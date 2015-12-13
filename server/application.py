@@ -1,4 +1,4 @@
-from flask import Flask, abort, jsonify, request, render_template, redirect, url_for
+from flask import Flask, abort, jsonify, request, render_template, redirect, url_for, make_response
 import wikibard, wikiserver
 from  werkzeug.debug import get_current_traceback
 import yaml
@@ -13,9 +13,13 @@ print_to_dot_matrix = False
 application = Flask(__name__)
 cors = CORS(application, resources={r"/api/*": {"origins": "*"}})
 
-@application.route('/', methods=['GET'])
+@application.route('/', methods=['GET', 'POST'])
 def index():
-    return render_template('index.html')
+    error = request.args.get("error")
+    if error is not None:
+        return render_template('index.html', error=error)
+    else:
+        return render_template('index.html')
 
 @application.route('/search', methods=['GET'])
 def search():
@@ -39,9 +43,18 @@ def compose():
     try:
         page = wikipedia.page(title.replace("_", " "))
     except wikipedia.exceptions.DisambiguationError:
-        return redirect(url_for('index'))
+        error = "{} is a disambiguation page, try something else".format(title.replace("_", " "))
+        response = make_response(redirect(url_for('index', error=error)))
+        return response
+
+    except wikipedia.exceptions.PageError:
+        error = "{} is not a real page, try something else".format(title.replace("_", " "))
+        response = make_response(redirect(url_for('index', error=error)))
+        return response
 
     if not page:
+        error = "{} is not a valid page, try something else".format(title.replace("_", " "))
+        response = make_response(redirect(url_for('index', error=error)))
         return redirect(url_for('index'))
     print("Composing poem for " + title)
     poem = wikiserver.poemForPageTitle(title)

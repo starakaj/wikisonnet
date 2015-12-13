@@ -34,7 +34,7 @@ def poemForPageTitle(title):
     dbconfig = dbconnect.MySQLDatabaseConnection.dbconfigForName(dbconfigname)
     pageID = dbreader.pageIDForPageTitle(dbconn, title)
     if pageID > 0:
-        poem_lines = wikibard.poemForPageID(pageID, 'elizabethan', dbconfig)
+        poem_lines = wikibard.poemForPageID(pageID, 'elizabethan', dbconfig, multi=True)
         return wikibard.poemStringForPoemLines(dbconn, poem_lines)
     else:
         return ""
