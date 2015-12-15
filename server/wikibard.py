@@ -6,6 +6,7 @@ import poemform
 import copy
 from multiprocessing import Pool
 from benchmarking import Timer
+from tabulate import tabulate
 
 optimized = True
 REQUIRED_POSSIBILITY_COUNT = 20
@@ -68,7 +69,7 @@ def flexibleConstraints(line_index, poem_form, completed_lines):
     return fc
 
 def fetchPossibleLines(dbconn, search_constraints, group, composed_lines, num=REQUIRED_POSSIBILITY_COUNT):
-    is_random = 'pageIDs' in group
+    is_random = True or 'pageIDs' in group
     options={"num":num, "random":is_random, "optimized":optimized, "print_statement":False}
     return dbreader.searchForLines(dbconn, group, search_constraints, options)
 
@@ -77,7 +78,6 @@ def computePossibleLines(dbconn, hard_constraints, flexible_constraints, search_
     possible_lines = []
 
     for i in range(len(flexible_constraints)+1):
-
         ## Get constraints dict for the current round
         this_flexible_constraints = flexible_constraints[i:]
         search_constraints = {}
@@ -87,7 +87,11 @@ def computePossibleLines(dbconn, hard_constraints, flexible_constraints, search_
 
         for group in search_groups:
             num = REQUIRED_POSSIBILITY_COUNT - len(possible_lines)
-            possible_lines += fetchPossibleLines(dbconn, search_constraints, group, composed_lines, num)
+            new_lines = fetchPossibleLines(dbconn, search_constraints, group, composed_lines, num)
+            for nl in new_lines:
+                nl['group_level'] = search_groups.index(group)
+                nl['constraint_fraction'] = float(i) / (len(flexible_constraints)+1)
+            possible_lines += new_lines
             if len(possible_lines) >= REQUIRED_POSSIBILITY_COUNT:
                 break
         if len(possible_lines) >= REQUIRED_POSSIBILITY_COUNT:
@@ -139,9 +143,9 @@ def poemForPageID(pageID, sonnet_form_name, dbconfig, multi=False):
 
     ## Get the groups associated with a given page (perhaps construct table views for speed?)
     search_groups = [{'pageIDs':[pageID]},
-                    {'pageIDs':dbreader.pagesLinkedFromPageID(dbconn, pageID)},
-                    {'minor_category':dbreader.categoryForPageID(dbconn, pageID, 'minor')},
-                    {'major_category':dbreader.categoryForPageID(dbconn, pageID, 'major')},
+                    # {'pageIDs':dbreader.pagesLinkedFromPageID(dbconn, pageID)},
+                    {'page_minor_category':dbreader.categoryForPageID(dbconn, pageID, 'minor')},
+                    {'page_major_category':dbreader.categoryForPageID(dbconn, pageID, 'major')},
                     {}] ## This 'none' group will search through the entire corpus
 
     composed_lines = [None for _ in poem_form.lines]
@@ -192,12 +196,14 @@ def poemForPageID(pageID, sonnet_form_name, dbconfig, multi=False):
     dbconn.close()
     return composed_lines
 
-def poemStringForPoemLines(dbconn, lines):
-    texts = []
+def addTextToLines(dbconn, lines):
     for line in lines:
         line_text = dbreader.textForLineID(dbconn, line['id'])
-        texts.append(line_text)
-    return "\n".join(texts)
+        line['text'] = line_text
+
+def printPoemLinesTable(lines, keys=["id", "text"]):
+    line_dicts = [{k:line[k] for k in keys} for line in lines]
+    print tabulate(line_dicts)
 
 def posStringForPoemLines(lines):
     pos_per_line = []

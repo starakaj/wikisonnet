@@ -197,8 +197,10 @@ def searchForLines(dbconn, group=None, constraints=None, options=None):
         constraints = optimizedConstraints(constraints)
         if any([p in constraints for p in hashed_leading_names+hashed_lagging_names]):
             query = query + """ join pos_hashes on pos_hashes.line_id = iambic_lines.id"""
-    if group and 'minor_category' in group or 'major_category' in group:
-        query = query + """ join page_categories on page_categories.id = iambic_lines.id"""
+    if group is not None and 'page_minor_category' in group or 'page_major_category' in group:
+        query = query + """ join page_categories on page_categories.id = iambic_lines.page_id"""
+    if group is not None and 'line_minor_category' in group or 'line_major_category' in group:
+        query = query + """ join line_categories on line_categories.id = iambic_lines.id"""
 
     ### Building WHERE clause ###
     for key in constraints:
@@ -225,10 +227,10 @@ def searchForLines(dbconn, group=None, constraints=None, options=None):
             else:
                 format_strings = ','.join(['%s'] * len(pages))
                 query = queryWithAddedWhereAppend(query, """ page_id IN (%s)""" % format_strings, valueList, list(pages))
-        if 'minor_category' in group:
-            query = queryWithAddedWhere(query, """ minor_category = %s""", valueList, group['minor_category'])
-        if 'major_category' in group:
-            query = queryWithAddedWhere(query, """ major_category = %s""", valueList, group['major_category'])
+        if 'page_minor_category' in group:
+            query = queryWithAddedWhere(query, """ minor_category = %s""", valueList, group['page_minor_category'])
+        if 'page_major_category' in group:
+            query = queryWithAddedWhere(query, """ major_category = %s""", valueList, group['page_major_category'])
     ### WHERE ###
 
     if brandom:

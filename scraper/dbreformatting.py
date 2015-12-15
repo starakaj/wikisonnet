@@ -4,9 +4,9 @@ import hashlib
 import json
 import server.benchmarking as benchmarking
 from server.wikibard import poemForPageID
-from server.wikibard import poemStringForPoemLines
 import itertools
 from multiprocessing import Pool
+import gensim
 
 def updateRhymeCounts(dbconn):
     cursor=dbconn.connection.cursor()
@@ -272,7 +272,7 @@ def printCachedPoemForID(poemID):
     if len(res) > 0:
         dbconn = dbconnect.MySQLDatabaseConnection.connectionWithConfiguration('local')
         poem = [{'id':res[0][i+2]} for i in range(14)]
-        print poemStringForPoemLines(dbconn, poem)
+        print " "
 
 def writeCachedPoems(limit=10, count=10):
     import server.dbconnect as dbconnect
@@ -295,3 +295,51 @@ def writeCachedPoems(limit=10, count=10):
     output = [p.get() for p in results]
     t.end("writing")
     t.printTime()
+
+def categorizeLines(commit_interval=1000, print_interval=1000):
+    read_conn = mysql.connector.connect(user="william", password="Sh4kespeare", host="localhost", database="wikisonnet")
+    write_conn = mysql.connector.connect(user="william", password="Sh4kespeare", host="localhost", database="wikisonnet")
+    read_cursor = read_conn.cursor(dictionary=True)
+    write_cursor = write_conn.cursor()
+    query = """SELECT id, line FROM iambic_lines"""
+    read_cursor.execute(query)
+    written=0
+    commit_timer = commit_interval
+    print_timer = print_interval
+
+    id2word = gensim.corpora.Dictionary.load_from_text('lda/results_wordids.txt.bz2')
+    lda_1000 = gensim.models.ldamodel.LdaModel.load('lda/lda_1000')
+    lda_100 = gensim.models.ldamodel.LdaModel.load('lda/lda_100')
+
+    for row in read_cursor:
+        text = row['line']
+        bow = id2word.doc2bow(text.lower().split())
+        minor_cat_list = lda_1000[bow]
+        major_cat_list = lda_100[bow]
+        minor_cat = None
+        if len(minor_cat_list) > 0:
+            minor_cat_list = sorted(minor_cat_list, key=lambda x: x[1], reverse=True)
+            minor_cat = minor_cat_list[0][0]
+        major_cat = None
+        if len(major_cat_list) > 0:
+            major_cat_list = sorted(major_cat_list, key=lambda x: x[1], reverse=True)
+            major_cat = major_cat_list[0][0]
+
+        query = """INSERT INTO line_categories VALUES (%s, %s, %s) ON DUPLICATE KEY UPDATE major_category=VALUES(major_category), minor_category=VALUES(minor_category);"""
+        values = (row["id"], minor_cat, major_cat)
+        write_cursor.execute(query, values)
+        written+=1
+
+        print_timer = print_timer-1
+        if print_timer==0:
+            print "Updated {}".format(written)
+            print_timer = print_interval
+        commit_timer = commit_timer-1
+        if commit_timer==0:
+            write_conn.commit()
+            commit_timer = commit_interval
+
+    write_conn.commit()
+    read_cursor.close()
+    read_conn.close()
+    write_conn.close()
