@@ -61,6 +61,11 @@ def flexibleConstraints(line_index, poem_form, completed_lines):
             pline = completed_lines[line_index-1]
             for c in pconstraints:
                 fc.append({c:pline[p2n[c]]})
+            if pline['pos_len'] == 'IN':
+                fc.insert(2, {'word_0':pline['word_len']})
+            if pline['pos_len_m1'] == 'IN':
+                fc.insert(2, {'word_m1':pline['word_len_m1']})
+
     if not poem_form.lines[line_index].ends:
         if completed_lines[line_index+1] is not None:
             nline = completed_lines[line_index+1]
@@ -183,6 +188,8 @@ def poemForPageID(pageID, sonnet_form_name, dbconfig, multi=False):
         pool = Pool(processes=4)
         pp = [pool.apply_async(composeLinesAtIndexes, args=(pageID, poem_form, dbconfig, search_groups, composed_lines, x)) for x in stanzas]
         poem_pieces = [p.get() for p in pp];
+        pool.close()
+        pool.join()
     else:
         poem_pieces = [composeLinesAtIndexes(pageID, poem_form, dbconfig, search_groups, composed_lines, x) for x in stanzas]
 
@@ -202,8 +209,8 @@ def addTextToLines(dbconn, lines):
         line['text'] = line_text
 
 def printPoemLinesTable(lines, keys=["id", "text"]):
-    line_dicts = [{k:line[k] for k in keys} for line in lines]
-    print tabulate(line_dicts)
+    table_rows = [[line[k] for k in keys] for line in lines]
+    print tabulate(table_rows, headers=keys)
 
 def posStringForPoemLines(lines):
     pos_per_line = []

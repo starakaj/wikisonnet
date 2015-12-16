@@ -190,7 +190,7 @@ def searchForLines(dbconn, group=None, constraints=None, options=None):
     num = options.get('num', 1)
     brandom = options.get('random', False)
     optimized = options.get('optimized', False)
-    query = """SELECT iambic_lines.id, word, rhyme_part, pos_m2, pos_m1, pos_0, pos_1, pos_len_m2, pos_len_m1, pos_len, pos_len_p1 FROM iambic_lines """
+    query = """SELECT iambic_lines.id, word, rhyme_part, pos_m2, pos_m1, pos_0, pos_1, pos_len_m2, pos_len_m1, pos_len, pos_len_p1, word_len_m1, word_len FROM iambic_lines """
     valueList = [];
     continuing_where = False
     if optimized:

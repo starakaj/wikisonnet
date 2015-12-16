@@ -4,7 +4,9 @@ poem_form_dicts = {
     'elizabethan' : {'scheme':'abab.cdcd.efef.gg',
                     'order':[0,1,2,3,4,5,6,7,8,9,10,11,13,12]},
     'spenserian' : {'scheme':'abab.bcbc.cdcd.ee',
-                    'order':[0,1,2,3,4,5,6,7,8,9,10,11,13,12]}
+                    'order':[0,1,2,3,4,5,6,7,8,9,10,11,13,12]},
+    'bespoke-1' : {'scheme':'aa.bb.cc.dd.efef.gg',
+                    'order':[0,1,3,2,4,5,6,7,8,9,10,11,13,12]},
 }
 
 class PoemFormLine:
