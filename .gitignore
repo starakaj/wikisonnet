@@ -6,4 +6,6 @@ dynamodb/*.json
 dynamodb/dynamodb
 caching_server/dbconfig.yml
 caching_server/data
+dbconfig.yml
+wikisonnet-api/wikibard
 lda
