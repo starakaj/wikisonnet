@@ -33,6 +33,8 @@ application.config.from_object(__name__)
 # Load configuration vals from a file
 application.config.from_pyfile('application.config', silent=True)
 HOST_IP = 'localhost'if application.config.get('HOST_IP') is None else application.config.get('HOST_IP')
+DB_CONFIG = 'local'if application.config.get('DB_CONFIG') is None else application.config.get('DB_CONFIG')
+dbconfig = wikiconnector.dbconfigForName()
 
 # Only enable Flask debugging if an env var is set to true
 application.debug = application.config['FLASK_DEBUG'] in ['true', 'True']
@@ -41,22 +43,22 @@ application.debug = application.config['FLASK_DEBUG'] in ['true', 'True']
 @application.route('/')
 def welcome():
     theme = application.config['THEME']
-    page_name = wikiconnector.getRandomPoemTitle(HOST_IP)
+    page_name = wikiconnector.getRandomPoemTitle(dbconfig)
     return flask.render_template('index.html', theme=theme, page_name=page_name)
 
-@application.route('/api/v2/compose/<page_id>')
+@application.route('/api/v2/pages/<page_id>/poems', methods=['GET', 'POST'])
 def compose(page_id):
-    poem_dict = wikiconnector.getCachedPoemForPage(HOST_IP, page_id)
+    poem_dict = wikiconnector.getCachedPoemForPage(dbconfig, page_id)
     if poem_dict is None:
-        poem_dict = wikiconnector.getCachedPoemForPage(HOST_IP, page_id, complete=False)
+        poem_dict = wikiconnector.getCachedPoemForPage(dbconfig, page_id, complete=False)
     if poem_dict is None:
         print "About to write a new poem"
-        poem_dict = wikiconnector.writeNewPoemForPage(HOST_IP, page_id)
+        poem_dict = wikiconnector.writeNewPoemForPage(dbconfig, page_id)
     return jsonify(poem_dict)
 
-@application.route('/api/v2/lookup/<poem_id>')
+@application.route('/api/v2/poems/<poem_id>', methods=['GET'])
 def lookup(poem_id):
-    poem_dict = wikiconnector.getSpecificPoem(HOST_IP, poem_id)
+    poem_dict = wikiconnector.getSpecificPoem(dbconfig, poem_id)
     return jsonify(poem_dict)
 
 if __name__ == '__main__':
