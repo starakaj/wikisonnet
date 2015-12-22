@@ -19,6 +19,7 @@ import json
 import flask
 from flask import request, Response, jsonify
 import wikiconnector
+from multiprocessing import Pool, cpu_count
 
 # Default config vals
 THEME = 'default' if os.environ.get('THEME') is None else os.environ.get('THEME')
@@ -34,11 +35,15 @@ application.config.from_object(__name__)
 application.config.from_pyfile('application.config', silent=True)
 HOST_IP = 'localhost'if application.config.get('HOST_IP') is None else application.config.get('HOST_IP')
 DB_CONFIG = 'local'if application.config.get('DB_CONFIG') is None else application.config.get('DB_CONFIG')
+PROCESS_COUNT = 1 if application.config.get('PROCESS_COUNT') is None else application.config.get('PROCESS_COUNT')
 dbconfig = wikiconnector.dbconfigForName()
 
 # Only enable Flask debugging if an env var is set to true
 application.debug = application.config['FLASK_DEBUG'] in ['true', 'True']
 
+# Pool of worker processes
+process_count = 50
+worker_pool = None
 
 @application.route('/')
 def welcome():
@@ -52,7 +57,6 @@ def compose(page_id):
     if poem_dict is None:
         poem_dict = wikiconnector.getCachedPoemForPage(dbconfig, page_id, complete=False)
     if poem_dict is None:
-        print "About to write a new poem"
         poem_dict = wikiconnector.writeNewPoemForPage(dbconfig, page_id)
     return jsonify(poem_dict)
 

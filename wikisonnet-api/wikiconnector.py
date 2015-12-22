@@ -114,7 +114,7 @@ def writeNewPoemForPage(dbconfig, page_id=21):
     writePoemAsync(dbconfig, page_id)
     return d;
 
-def writeNewPoemForPage(dbconfig, pageID=21):
+def writeNewPoemForPage(dbconfig, pageID):
     ## Create the row for the cached posStringForPoemLines
     write_conn = mysql.connector.connect(user=dbconfig['user'],
                                         password=dbconfig['password'],
