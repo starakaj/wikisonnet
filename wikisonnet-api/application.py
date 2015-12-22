@@ -17,9 +17,10 @@ import sys
 import json
 
 import flask
-from flask import request, Response, jsonify
+from flask import request, Response, jsonify, session
 import wikiconnector
 from multiprocessing import Pool, cpu_count
+from flask.ext.cors import CORS
 
 # Default config vals
 THEME = 'default' if os.environ.get('THEME') is None else os.environ.get('THEME')
@@ -27,9 +28,12 @@ FLASK_DEBUG = 'false' if os.environ.get('FLASK_DEBUG') is None else os.environ.g
 
 # Create the Flask app
 application = flask.Flask(__name__)
+cors = CORS(application, resources={r"/api/*": {"origins": "http://localhost:8080", "supports_credentials": True}})
 
 # Load config values specified above
 application.config.from_object(__name__)
+
+application.secret_key = 'this is a test secret key'
 
 # Load configuration vals from a file
 application.config.from_pyfile('application.config', silent=True)
@@ -53,6 +57,12 @@ def welcome():
 
 @application.route('/api/v2/pages/<page_id>/poems', methods=['GET', 'POST'])
 def compose(page_id):
+    if not session['id']: 
+        print ("assigning session")
+        session['id'] = 1
+    else:
+        print("sessions working! ")
+        print(session['id'])
     poem_dict = wikiconnector.getCachedPoemForPage(dbconfig, page_id)
     if poem_dict is None:
         poem_dict = wikiconnector.getCachedPoemForPage(dbconfig, page_id, complete=False)
