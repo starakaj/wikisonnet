@@ -141,3 +141,20 @@ def writeNewPoemForPage(dbconfig, pageID):
     writePoemAsync(dbconfig, pageID, poem_id)
 
     return d
+
+def createSession(dbconfig):
+    conn = mysql.connector.connect(user=dbconfig['user'],
+                                    password=dbconfig['password'],
+                                    host=dbconfig['host'],
+                                    database=dbconfig['database'])
+    cursor = conn.cursor()
+    query = """INSERT INTO sessions (created_at) VALUES(current_timestamp);"""
+    cursor.execute(query)
+    cursor.execute("""COMMIT;""");
+    query = """SELECT LAST_INSERT_ID();"""
+    cursor.execute(query)
+    res = cursor.fetchall()
+    conn.close()
+
+    return res[0][0]
+     
