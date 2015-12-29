@@ -21,7 +21,7 @@ from flask import request, Response, jsonify, session
 import wikiconnector
 from multiprocessing import Pool, cpu_count
 from flask.ext.cors import CORS
-from IPython import embed
+# from IPython import embed
 
 # Default config vals
 THEME = 'default' if os.environ.get('THEME') is None else os.environ.get('THEME')
@@ -75,7 +75,6 @@ def compose():
         session['id'] = session_id
     title = request.form.get("poemTitle")
     page_id = wikiconnector.getPageId(dbconfig, title)
-    embed()
     poem_dict = wikiconnector.getCachedPoemForPage(dbconfig, page_id)
     if poem_dict is None:
         poem_dict = wikiconnector.getCachedPoemForPage(dbconfig, page_id, complete=False)
