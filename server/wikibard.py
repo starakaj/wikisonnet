@@ -9,7 +9,12 @@ from benchmarking import Timer
 from tabulate import tabulate
 
 optimized = True
-REQUIRED_POSSIBILITY_COUNT = 20
+use_model = False
+if use_model:
+    from nltk import word_tokenize
+    import gensim
+    model_path = '/Users/samtarakajian/Documents/wikisonnet/word2vec/wiki-latest.en.model'
+REQUIRED_POSSIBILITY_COUNT = 100
 
 n2p = {
     "pos_len_m1":"pos_m1",
@@ -22,6 +27,7 @@ p2n = {n2p[k]:k for k in n2p}
 
 pconstraints = ["pos_1", "pos_m2", "pos_0", "pos_m1"]
 nconstraints = [p2n[k] for k in pconstraints]
+rname = None
 
 def makeStanzas(parallel_starts, parallel_ends, poem_form):
     ret_stanzas = []
@@ -73,14 +79,25 @@ def flexibleConstraints(line_index, poem_form, completed_lines):
                 fc.append({c:nline[n2p[c]]})
     return fc
 
-def fetchPossibleLines(dbconn, search_constraints, group, composed_lines, num=REQUIRED_POSSIBILITY_COUNT):
-    is_random = True or 'pageIDs' in group
-    options={"num":num, "random":is_random, "optimized":optimized, "print_statement":False}
+def fetchPossibleLines(dbconn, search_constraints, group, composed_lines, view_constraints=None, temp_view_name='tv', num=REQUIRED_POSSIBILITY_COUNT):
+    is_random = 'pageIDs' in group or 'minor_category' in group or 'major_category' in group
+    options={"num":num, "random":is_random, "optimized":optimized, "print_statement":False, "subquery":False}
+    if view_constraints:
+        options['view_name'] = temp_view_name;
+        options['view_constraints'] = view_constraints;
     return dbreader.searchForLines(dbconn, group, search_constraints, options)
 
-def computePossibleLines(dbconn, hard_constraints, flexible_constraints, search_groups, composed_lines):
+def computePossibleLines(dbconn, hard_constraints, flexible_constraints, search_groups, composed_lines, possibility_count=REQUIRED_POSSIBILITY_COUNT):
 
     possible_lines = []
+
+    ## Create a view for this round of flexible constraints
+    tv_name = "tv_{}".format(int(random.getrandbits(128)))
+    view_constraints = {}
+    for d in hard_constraints: ## + this_flexible_constraints:
+        for k in d:
+            view_constraints[k] = d[k]
+    dbreader.createViewForConstraints(dbconn, view_constraints, tv_name)
 
     for i in range(len(flexible_constraints)+1):
         ## Get constraints dict for the current round
@@ -91,20 +108,23 @@ def computePossibleLines(dbconn, hard_constraints, flexible_constraints, search_
                 search_constraints[k] = d[k]
 
         for group in search_groups:
-            num = REQUIRED_POSSIBILITY_COUNT - len(possible_lines)
-            new_lines = fetchPossibleLines(dbconn, search_constraints, group, composed_lines, num)
+            num = possibility_count - len(possible_lines)
+            new_lines = fetchPossibleLines(dbconn, search_constraints, group, composed_lines, view_constraints, tv_name, num)
             for nl in new_lines:
                 nl['group_level'] = search_groups.index(group)
                 nl['constraint_fraction'] = float(i) / (len(flexible_constraints)+1)
             possible_lines += new_lines
-            if len(possible_lines) >= REQUIRED_POSSIBILITY_COUNT:
+            if len(possible_lines) >= possibility_count:
                 break
-        if len(possible_lines) >= REQUIRED_POSSIBILITY_COUNT:
+
+        if len(possible_lines) >= possibility_count:
             break
+
+    dbreader.clearView(dbconn, tv_name)
 
     return possible_lines
 
-def getBestLines(dbconn, hard_constraints, lines, poem_form, line_index, count=1):
+def getBestLines(dbconn, hard_constraints, lines, poem_form, line_index, previous_line=None, count=1):
     if 'rhyme_part' not in hard_constraints:
         rhyme_counts = map(lambda x:(dbreader.rhymeCountForRhyme(dbconn, x['word'], x['rhyme_part'])), lines)
         total_rhymes = sum(rhyme_counts)
@@ -119,7 +139,19 @@ def getBestLines(dbconn, hard_constraints, lines, poem_form, line_index, count=1
     elif (not poem_form.lines[line_index].ends and
         poem_form.order[line_index] < poem_form.order[line_index+1]
         ):
-        lines = sorted(lines, key = lambda x: dbreader.posCountsForLine(dbconn, x, 'lagging'), reverse=True )
+        if use_model and previous_line is not None:
+            model = gensim.models.Word2Vec.load(model_path)
+
+            ## Get the text for each of the lines
+            cont_text = [dbreader.textForLineID(dbconn, cnt['id']) for cnt in lines]
+
+            ## Sort the continuations
+            sen1 = (u" ").join(word_tokenize(previous_line))
+            con_sens = [(i, u" ".join(word_tokenize(cont_text[i]))) for i in range(len(cont_text))]
+            con_sens = sorted(con_sens, key=lambda x: model.score([(sen1 + " " + x[1]).split()])[0], reverse=True)
+            lines = [lines[i] for (i,_) in con_sens]
+        else:
+            lines = sorted(lines, key = lambda x: dbreader.posCountsForLine(dbconn, x, 'lagging'), reverse=True )
     else:
         lines = sorted(lines, key = lambda x: random.random())
     return lines[:count]
@@ -132,7 +164,11 @@ def composeLinesAtIndexes(pageID, poem_form, dbconfig, search_groups, composed_l
             hard_constraints = hardConstraints(idx, poem_form, ret_composed_lines)
             flexible_constraints = flexibleConstraints(idx, poem_form, ret_composed_lines)
             possible_lines = computePossibleLines(dbconn, hard_constraints, flexible_constraints, search_groups, ret_composed_lines)
-            next_lines = getBestLines(dbconn, hard_constraints, possible_lines, poem_form, idx, 1)
+            previous_line = None
+            if not poem_form.lines[idx].starts and ret_composed_lines[idx-1]:
+                previous_line = dbreader.textForLineID(dbconn, ret_composed_lines[idx-1]['id'])
+                print previous_line
+            next_lines = getBestLines(dbconn, hard_constraints, possible_lines, poem_form, idx, previous_line=previous_line, count=1)
             ret_composed_lines[idx] = next_lines[0]
     dbconn.close()
     return ret_composed_lines
@@ -148,7 +184,9 @@ def poemForPageID(pageID, sonnet_form_name, dbconfig, multi=False):
 
     ## Get the groups associated with a given page (perhaps construct table views for speed?)
     search_groups = [{'pageIDs':[pageID]},
-                    # {'pageIDs':dbreader.pagesLinkedFromPageID(dbconn, pageID)},
+                    {'pageIDs':dbreader.pagesLinkedFromPageID(dbconn, pageID)},
+                    # {'line_minor_category':dbreader.categoryForPageID(dbconn, pageID, 'minor')},
+                    # {'line_major_category':dbreader.categoryForPageID(dbconn, pageID, 'major')},
                     {'page_minor_category':dbreader.categoryForPageID(dbconn, pageID, 'minor')},
                     {'page_major_category':dbreader.categoryForPageID(dbconn, pageID, 'major')},
                     {}] ## This 'none' group will search through the entire corpus
@@ -166,8 +204,9 @@ def poemForPageID(pageID, sonnet_form_name, dbconfig, multi=False):
         idx = parallel_starts[0].index
         hard_constraints = hardConstraints(idx, poem_form, composed_lines)
         flexible_constraints = flexibleConstraints(idx, poem_form, composed_lines)
-        possible_lines = computePossibleLines(dbconn, hard_constraints, flexible_constraints, search_groups, composed_lines)
-        starting_lines = getBestLines(dbconn, hard_constraints, possible_lines, poem_form, idx, len(parallel_starts))
+        possible_lines = computePossibleLines(dbconn, hard_constraints, flexible_constraints, search_groups, composed_lines, possibility_count=20)
+        starting_lines = getBestLines(dbconn, hard_constraints, possible_lines, poem_form, idx, count=10)
+        starting_lines = random.sample(starting_lines, len(parallel_starts))
         for i,l in enumerate(starting_lines):
             composed_lines[parallel_starts[i].index] = l
 
@@ -176,8 +215,9 @@ def poemForPageID(pageID, sonnet_form_name, dbconfig, multi=False):
         idx = parallel_ends[0].index
         hard_constraints = hardConstraints(idx, poem_form, composed_lines)
         flexible_constraints = flexibleConstraints(idx, poem_form, composed_lines)
-        possible_lines = computePossibleLines(dbconn, hard_constraints, flexible_constraints, search_groups, composed_lines)
-        ending_lines = getBestLines(dbconn, hard_constraints, possible_lines, poem_form, idx, len(parallel_ends))
+        possible_lines = computePossibleLines(dbconn, hard_constraints, flexible_constraints, search_groups, composed_lines, possibility_count=10)
+        ending_lines = getBestLines(dbconn, hard_constraints, possible_lines, poem_form, idx, count=10)
+        ending_lines = random.sample(ending_lines, len(parallel_ends))
         for i,l in enumerate(ending_lines):
             composed_lines[parallel_ends[i].index] = l
 

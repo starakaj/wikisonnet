@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 import dbhash
 import random
 from benchmarking import Timer
@@ -27,14 +28,13 @@ def queryWithAddedWhereAppend(query, phrase, valueList, appendedList=None):
 
 def randomIndexedPage(dbconn):
     cur = dbconn.connection.cursor()
-    offset = random.randint(0, 4000000)
-    query = """SELECT page_id FROM iambic_lines LIMIT 1 OFFSET %s;"""
+    offset = random.randint(0, 4961336)
+    query = """SELECT id FROM page_categories LIMIT 1 OFFSET %s;"""
     values = (offset,)
     cur.execute(query, values)
     res = cur.fetchall()
     cur.close()
     return res[0][0]
-
 
 def pageIDForPageTitle(dbconn, name, doCache=False):
     if name in dbconn.name_cache:
@@ -65,7 +65,7 @@ def pageTitleForPageID(dbconn, pageID):
     else:
         name = None
     cursor.close()
-    return name
+    return name.decode('utf-8')
 
 def followRedirectForPageID(dbconn, pageID):
     cursor = dbconn.connection.cursor()
@@ -134,6 +134,7 @@ pos_prev_constraints = ["pos_0", "pos_1", "pos_m1", "pos_m2"]
 pos_next_constraints = ["pos_len_m2", "pos_len_m1", "pos_len", "pos_len_p1"]
 hashed_leading_names = ["leading_2gram", "leading_3gram", "leading_4gram"]
 hashed_lagging_names = ["lagging_2gram", "lagging_3gram", "lagging_4gram"]
+subquery_constraints = ['starts', 'ends', 'rhyme_part']
 pos_config_sets = [{"constraints":pos_prev_constraints, "names":hashed_leading_names},
                     {"constraints":pos_next_constraints, "names":hashed_lagging_names}]
 
@@ -184,54 +185,146 @@ def optimizedConstraints(constraints):
 
     return mod_constraints
 
+def queryWithAddedConstraint(_query, key, valueList, constraints):
+    if key == "excluded_word":
+        _query = queryWithAddedWhere(_query, """ iambic_lines.word != %s""", valueList, constraints[key])
+    elif key == "excluded_lines":
+        excludedLines = constraints[key]
+        if len(excludedLines) is 1:
+            _query = queryWithAddedWhere(_query, """ iambic_lines.id != %s""", valueList, excludedLines[0])
+        elif len(excludedLines) is not 0:
+            format_strings = ','.join(['%s'] * len(excludedLines))
+            _query = queryWithAddedWhereAppend(_query, """ iambic_lines.id NOT IN (%s)""" % format_strings, valueList, list(excludedLines))
+    else:
+        if key in hashed_leading_names + hashed_lagging_names:
+            _query = queryWithAddedWhere(_query, """ pos_hashes.""" + key + """ = %s""", valueList, constraints[key])
+        else:
+            _query = queryWithAddedWhere(_query, """ iambic_lines.""" + key + """ = %s""", valueList, constraints[key])
+    return _query
+
+def createViewForConstraints(dbconn, constraints=None, temp_view_name='tv'):
+    if constraints is None:
+        return
+
+    cur = dbconn.connection.cursor()
+    query = """CREATE VIEW {} AS SELECT * FROM iambic_lines """.format(temp_view_name)
+    valueList = [];
+    for key in constraints:
+        if key == "excluded_word":
+            query = queryWithAddedWhere(query, """ word != %s""", valueList, constraints[key])
+        elif key == "excluded_lines":
+            excludedLines = constraints[key]
+            if len(excludedLines) is 1:
+                query = queryWithAddedWhere(query, """ id != %s""", valueList, excludedLines[0])
+            elif len(excludedLines) is not 0:
+                format_strings = ','.join(['%s'] * len(excludedLines))
+                query = queryWithAddedWhereAppend(query, """ id NOT IN (%s)""" % format_strings, valueList, list(excludedLines))
+        else:
+            query = queryWithAddedWhere(query, """ """ + key + """ = %s""", valueList, constraints[key])
+
+    values = tuple(valueList)
+    cur.execute(query, values)
+
+def clearView(dbconn, temp_view_name='tv'):
+    cur = dbconn.connection.cursor()
+    cur.execute("DROP VIEW IF EXISTS {};".format(temp_view_name))
+
 def searchForLines(dbconn, group=None, constraints=None, options=None):
 
     cur = dbconn.connection.cursor(dictionary=True)
     num = options.get('num', 1)
     brandom = options.get('random', False)
     optimized = options.get('optimized', False)
-    query = """SELECT iambic_lines.id, word, rhyme_part, pos_m2, pos_m1, pos_0, pos_1, pos_len_m2, pos_len_m1, pos_len, pos_len_p1, word_len_m1, word_len FROM iambic_lines """
+    view_constraints = options.get('view_constraints', [])
+    table_name = options.get('view_name', 'iambic_lines')
+
+    query = """SELECT {}.id, word, rhyme_part, pos_m2, pos_m1, pos_0, pos_1, pos_len_m2, pos_len_m1, pos_len, pos_len_p1, word_len_m1, word_len FROM {} """.format(table_name, table_name)
     valueList = [];
     continuing_where = False
+    use_subquery = options.get('subquery', False)
+    subquery = """SELECT id FROM {} """.format(table_name)
     if optimized:
         constraints = optimizedConstraints(constraints)
         if any([p in constraints for p in hashed_leading_names+hashed_lagging_names]):
-            query = query + """ join pos_hashes on pos_hashes.line_id = iambic_lines.id"""
-    if group is not None and 'page_minor_category' in group or 'page_major_category' in group:
-        query = query + """ join page_categories on page_categories.id = iambic_lines.page_id"""
-    if group is not None and 'line_minor_category' in group or 'line_major_category' in group:
-        query = query + """ join line_categories on line_categories.id = iambic_lines.id"""
-
-    ### Building WHERE clause ###
-    for key in constraints:
-        if key == "excluded_word":
-            query = queryWithAddedWhere(query, """ iambic_lines.word != %s""", valueList, constraints[key])
-        elif key == "excluded_lines":
-            excludedLines = constraints[key]
-            if len(excludedLines) is 1:
-                query = queryWithAddedWhere(query, """ iambic_lines.id != %s""", valueList, excludedLines[0])
-            elif len(excludedLines) is not 0:
-                format_strings = ','.join(['%s'] * len(excludedLines))
-                query = queryWithAddedWhereAppend(query, """ iambic_lines.id NOT IN (%s)""" % format_strings, valueList, list(excludedLines))
-        else:
-            if key in hashed_leading_names + hashed_lagging_names:
-                query = queryWithAddedWhere(query, """ pos_hashes.""" + key + """ = %s""", valueList, constraints[key])
-            else:
-                query = queryWithAddedWhere(query, """ iambic_lines.""" + key + """ = %s""", valueList, constraints[key])
-
+            query = query + """ join pos_hashes on pos_hashes.line_id = {}.id""".format(table_name)
     if group:
-        if 'pageIDs' in group:
-            pages = group['pageIDs']
-            if len(pages) is 1:
-                query = queryWithAddedWhere(query, """ page_id = %s""", valueList, pages[0])
+        if 'page_major_category' in group or 'page_minor_category' in group:
+            query = query + """ join page_categories on page_categories.id = {}.page_id""".format(table_name)
+        if 'line_major_category' in group or 'line_minor_category' in group:
+            query = query + """ join line_categories on line_categories.id = {}.id""".format(table_name)
+
+    if use_subquery:
+        ### QUERY ###
+        for key in constraints:
+            if key not in subquery_constraints:
+                query = queryWithAddedConstraint(query, key, valueList, constraints)
+
+        if group:
+            if 'pageIDs' in group:
+                pages = group['pageIDs']
+                if len(pages) is 1:
+                    query = queryWithAddedWhere(query, """ page_id = %s""", valueList, pages[0])
+                else:
+                    format_strings = ','.join(['%s'] * len(pages))
+                    query = queryWithAddedWhereAppend(query, """ page_id IN (%s)""" % format_strings, valueList, list(pages))
+            if 'page_minor_category' in group:
+                query = queryWithAddedWhere(query, """ minor_category = %s""", valueList, group['page_minor_category'])
+            if 'page_major_category' in group:
+                query = queryWithAddedWhere(query, """ major_category = %s""", valueList, group['page_major_category'])
+            if 'line_minor_category' in group:
+                query = queryWithAddedWhere(query, """ minor_category = %s""", valueList, group['line_minor_category'])
+            if 'line_major_category' in group:
+                query = queryWithAddedWhere(query, """ major_category = %s""", valueList, group['line_major_category'])
+        ### QUERY ###
+
+        ### SUBQUERY ###
+        subquery = """SELECT id FROM iambic_lines """
+        for key in constraints:
+            if key in subquery_constraints:
+                subquery = queryWithAddedConstraint(subquery, key, valueList, constraints)
+        ### SUBQUERY ###
+
+    else:
+        ### Building WHERE clause without subquery ###
+        for key in [k for k in constraints if k not in view_constraints]:
+            if key == "excluded_word":
+                query = queryWithAddedWhere(query, """ word != %s""", valueList, constraints[key])
+            elif key == "excluded_lines":
+                excludedLines = constraints[key]
+                if len(excludedLines) is 1:
+                    query = queryWithAddedWhere(query, """ id != %s""", valueList, excludedLines[0])
+                elif len(excludedLines) is not 0:
+                    format_strings = ','.join(['%s'] * len(excludedLines))
+                    query = queryWithAddedWhereAppend(query, """ id NOT IN (%s)""" % format_strings, valueList, list(excludedLines))
             else:
-                format_strings = ','.join(['%s'] * len(pages))
-                query = queryWithAddedWhereAppend(query, """ page_id IN (%s)""" % format_strings, valueList, list(pages))
-        if 'page_minor_category' in group:
-            query = queryWithAddedWhere(query, """ minor_category = %s""", valueList, group['page_minor_category'])
-        if 'page_major_category' in group:
-            query = queryWithAddedWhere(query, """ major_category = %s""", valueList, group['page_major_category'])
-    ### WHERE ###
+                if key in hashed_leading_names + hashed_lagging_names:
+                    query = queryWithAddedWhere(query, """ pos_hashes.""" + key + """ = %s""", valueList, constraints[key])
+                else:
+                    query = queryWithAddedWhere(query, """ {}.""".format(table_name) + key + """ = %s""", valueList, constraints[key])
+
+        if group:
+            if 'pageIDs' in group:
+                pages = group['pageIDs']
+                if len(pages) is 1:
+                    query = queryWithAddedWhere(query, """ page_id = %s""", valueList, pages[0])
+                else:
+                    format_strings = ','.join(['%s'] * len(pages))
+                    query = queryWithAddedWhereAppend(query, """ page_id IN (%s)""" % format_strings, valueList, list(pages))
+            if 'page_minor_category' in group:
+                query = queryWithAddedWhere(query, """ minor_category = %s""", valueList, group['page_minor_category'])
+            if 'page_major_category' in group:
+                query = queryWithAddedWhere(query, """ major_category = %s""", valueList, group['page_major_category'])
+            if 'line_minor_category' in group:
+                query = queryWithAddedWhere(query, """ minor_category = %s""", valueList, group['line_minor_category'])
+            if 'line_major_category' in group:
+                query = queryWithAddedWhere(query, """ major_category = %s""", valueList, group['line_major_category'])
+        ### /WHERE ###
+
+    if use_subquery:
+        if not """WHERE""" in query:
+            query = query + """ WHERE {}.id IN (""".format(table_name) + subquery + """)"""
+        else:
+            query = query + """ AND {}.id IN (""".format(table_name) + subquery + """)"""
 
     if brandom:
         query = query + """ ORDER BY RAND()"""
@@ -242,7 +335,10 @@ def searchForLines(dbconn, group=None, constraints=None, options=None):
     try:
         cur.execute(query, values)
     except Exception as e:
-        print cur.statement
+        try:
+            print cur.statement
+        except:
+            print "Can't print statement"
         raise e
     if options.get('print_statement', False):
         print cur.statement
