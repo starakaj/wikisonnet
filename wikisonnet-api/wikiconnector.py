@@ -185,7 +185,7 @@ def addPoemToSession(dbconfig, poem_id, session_id):
                                     host=dbconfig['host'],
                                     database=dbconfig['database'])
     cursor = conn.cursor()
-    query = """INSERT INTO sessions_poems (session_id, poem_id) VALUES(%s, %s);"""
+    query = """INSERT IGNORE INTO sessions_poems (session_id, poem_id) VALUES(%s, %s);"""
     values=(session_id, poem_id)
     cursor.execute(query, values)
     cursor.execute("""COMMIT;""");
