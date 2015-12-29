@@ -75,9 +75,11 @@ def compose():
         session['id'] = session_id
     title = request.form.get("poemTitle")
     page_id = wikiconnector.getPageId(dbconfig, title)
-    poem_dict = wikiconnector.getCachedPoemForPage(dbconfig, page_id)
+    poem_dict = wikiconnector.getCachedPoemForPage(dbconfig, page_id, True, session['id'])
+    if poem_dict is not None:
+        wikiconnector.addPoemToSession(dbconfig, poem_dict['id'], session['id'])
     if poem_dict is None:
-        poem_dict = wikiconnector.getCachedPoemForPage(dbconfig, page_id, complete=False)
+        poem_dict = wikiconnector.getCachedPoemForPage(dbconfig, page_id, False)
     if poem_dict is None:
         poem_dict = wikiconnector.writeNewPoemForPage(dbconfig, page_id)
     return jsonify(poem_dict)
@@ -85,6 +87,8 @@ def compose():
 @application.route('/api/v2/poems/<poem_id>', methods=['GET'])
 def lookup(poem_id):
     poem_dict = wikiconnector.getSpecificPoem(dbconfig, poem_id)
+    if poem_dict['complete']:
+        wikiconnector.addPoemToSession(dbconfig, poem_dict['id'], session['id'])
     return jsonify(poem_dict)
 
 if __name__ == '__main__':
