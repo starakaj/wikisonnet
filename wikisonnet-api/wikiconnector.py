@@ -159,14 +159,14 @@ def createSession(dbconfig):
     return res[0][0]
 
 def getPageId(dbconfig, title):
-    title.replace(" ", "_")
+    title_slug = title.replace(" ", "_")
     conn = mysql.connector.connect(user=dbconfig['user'],
                                     password=dbconfig['password'],
                                     host=dbconfig['host'],
                                     database=dbconfig['database'])
     cursor = conn.cursor()
     query = """SELECT page_id FROM page_names WHERE name = %s"""
-    values = (title,)
+    values = (title_slug,)
     cursor.execute(query, values)
     res = cursor.fetchall()
     cursor.close()
