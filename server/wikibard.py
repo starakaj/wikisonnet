@@ -183,7 +183,7 @@ def poemForPageID(pageID, sonnet_form_name, dbconfig, multi=False, output_queue=
 
     ## Get the groups associated with a given page (perhaps construct table views for speed?)
     search_groups = [{'pageIDs':[pageID]},
-                    {'pageIDs':dbreader.pagesLinkedFromPageID(dbconn, pageID)},
+                    # {'pageIDs':dbreader.pagesLinkedFromPageID(dbconn, pageID)},
                     # {'line_minor_category':dbreader.categoryForPageID(dbconn, pageID, 'minor')},
                     # {'line_major_category':dbreader.categoryForPageID(dbconn, pageID, 'major')},
                     {'page_minor_category':dbreader.categoryForPageID(dbconn, pageID, 'minor')},

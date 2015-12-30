@@ -29,6 +29,31 @@ def stanzaWrite(lines, user_info):
     values = tuple(line_ids + [poem_id])
     cursor.execute(query, values)
     cursor.execute("""COMMIT;""")
+
+    query = (
+            """UPDATE cached_poems SET """
+            """complete = CASE """
+	        """WHEN line_0 IS NOT NULL AND """
+		"""line_1 IS NOT NULL AND """
+		"""line_2 IS NOT NULL AND """
+		"""line_3 IS NOT NULL AND """
+		"""line_4 IS NOT NULL AND """
+		"""line_5 IS NOT NULL AND """
+		"""line_6 IS NOT NULL AND """
+		"""line_7 IS NOT NULL AND """
+		"""line_8 IS NOT NULL AND """
+		"""line_9 IS NOT NULL AND """
+		"""line_10 IS NOT NULL AND """
+		"""line_11 IS NOT NULL AND """
+		"""line_12 IS NOT NULL AND """
+		"""line_13 IS NOT NULL """
+	    """THEN 1 """
+	    """ELSE 0 """
+        """END WHERE id=%s;"""
+        )
+    values = (poem_id, )
+    cursor.execute(query, values)
+    cursor.execute("""COMMIT;""")
     conn.close()
 
 def dbconfigForName(name='local'):
@@ -87,8 +112,8 @@ def getCachedPoemForPage(dbconfig, page_id=21, complete=True, session_id=0):
                                     host=dbconfig['host'],
                                     database=dbconfig['database'])
     cursor = conn.cursor(dictionary=True)
-    query = """SELECT cached_poems.* FROM cached_poems 
-                LEFT OUTER JOIN sessions_poems ON cached_poems.id = sessions_poems.poem_id  
+    query = """SELECT cached_poems.* FROM cached_poems
+                LEFT OUTER JOIN sessions_poems ON cached_poems.id = sessions_poems.poem_id
                 WHERE page_id=%s AND complete=%s AND (session_id!=%s OR session_id IS NULL)
                 ORDER BY RAND() LIMIT 1;"""
     values = (page_id, complete, session_id)
@@ -196,5 +221,3 @@ def addPoemToSession(dbconfig, poem_id, session_id):
     conn.close()
 
     return res[0][0]
-
-     
