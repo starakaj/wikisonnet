@@ -29,7 +29,7 @@ FLASK_DEBUG = 'false' if os.environ.get('FLASK_DEBUG') is None else os.environ.g
 
 # Create the Flask app
 application = flask.Flask(__name__)
-cors = CORS(application, resources={r"/api/*": {"origins": ["http://localhost:3000", "http://159.203.110.230:3000"], "supports_credentials": True}})
+cors = CORS(application, resources={r"/api/*": {"origins": ["http://localhost:3000", "http://159.203.110.230:3000", "http://wikison.net"], "supports_credentials": True}})
 
 # Load config values specified above
 application.config.from_object(__name__)
