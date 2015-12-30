@@ -4,14 +4,14 @@ import wikibard.wikibard as wikibard
 import wikibard.dbconnect as dbconnect
 from multiprocessing import Process
 
-def dbconfigForName(name='local'):
-    return dbconnect.MySQLDatabaseConnection.dbconfigForName(name)
+def printMoose(moose):
+    print moose
 
-def writePoem(dbconfig, page_id, poem_id):
-    ## Write the poem
-    poem = wikibard.poemForPageID(page_id, 'elizabethan', dbconfig)
-    print(poem)
-    line_ids = [line['id'] for line in poem]
+def stanzaWrite(lines, user_info):
+    print lines
+    poem_id = user_info[0]
+    dbconfig = user_info[1]
+    line_ids = [line['id'] for line in lines if line is not None]
 
     ## Store the poem
     conn = mysql.connector.connect(user=dbconfig['user'],
@@ -19,22 +19,25 @@ def writePoem(dbconfig, page_id, poem_id):
                                     host=dbconfig['host'],
                                     database=dbconfig['database'])
     cursor = conn.cursor()
-    query = (
-        """UPDATE cached_poems SET"""
-        """ line_0=%s, line_1=%s, line_2=%s, line_3=%s,"""
-        """ line_4=%s, line_5=%s, line_6=%s, line_7=%s,"""
-        """ line_8=%s, line_9=%s, line_10=%s, line_11=%s,"""
-        """ line_12=%s, line_13=%s, complete=1"""
-        """ WHERE id=%s;"""
-    )
+    query = """UPDATE cached_poems SET"""
+    for i, line in enumerate(lines):
+        if line is not None:
+            query = query + """ line_{}=%s,""".format(i)
+    if query.endswith(","):
+        query = query[:-1]
+    query = query + """ WHERE id=%s"""
     values = tuple(line_ids + [poem_id])
     cursor.execute(query, values)
     cursor.execute("""COMMIT;""")
     conn.close()
 
-def writePoemAsync(dbconfig, page_id, poem_id):
-    p = Process(target=writePoem, args=(dbconfig, page_id, poem_id))
-    p.start()
+def dbconfigForName(name='local'):
+    return dbconnect.MySQLDatabaseConnection.dbconfigForName(name)
+
+def writePoem(dbconfig, page_id, poem_id, queue=None):
+    ## Write the poem
+    print "Beginning synchronous write"
+    wikibard.poemForPageID(page_id, 'elizabethan', dbconfig, output_queue=queue, callback=stanzaWrite, user_info=(poem_id, dbconfig))
 
 def getRandomPoemTitle(dbconfig):
     conn = mysql.connector.connect(user=dbconfig['user'],
@@ -61,16 +64,21 @@ def dictFromPoemRow(cursor, poem_row_dict):
     d['complete'] = poem_row_dict['complete']
     d['starting_page'] = poem_row_dict['page_id']
     d['id'] = poem_row_dict['id']
-    if d['complete'] == 1:
-        line_count = len(filter(lambda x:x.startswith('line_'), poem_row_dict.keys()))
-        line_ids = [poem_row_dict['line_'+str(line_num)] for line_num in range(line_count)]
-        format_strings = ','.join(['%s'] * len(line_ids))
+
+    ## Get the text for the line ID's
+    line_count = len(filter(lambda x:x.startswith('line_'), poem_row_dict.keys()))
+    line_ids = [poem_row_dict['line_'+str(line_num)] for line_num in range(line_count)]
+    line_ids_nonone = filter(lambda x: x is not None, line_ids)
+    empty_dict = {'page_id':0, 'text':""}
+    if len(line_ids_nonone) > 0:
+        format_strings = ','.join(['%s'] * len(line_ids_nonone))
         query = """SELECT id, page_id, line FROM iambic_lines WHERE id IN (%s);""" % format_strings
-        values = tuple(line_ids)
+        values = tuple(line_ids_nonone)
         cursor.execute(query, values)
         res = cursor.fetchall()
         line_dict = {r['id']:(r['page_id'], r['line']) for r in res}
-        d['lines'] = [{'page_id':line_dict[_id][0], 'text':line_dict[_id][1]} for _id in line_ids]
+        d['lines'] = [{'page_id':line_dict[_id][0], 'text':line_dict[_id][1]} if _id else empty_dict for _id in line_ids]
+
     return d
 
 def getCachedPoemForPage(dbconfig, page_id=21, complete=True):
@@ -84,7 +92,6 @@ def getCachedPoemForPage(dbconfig, page_id=21, complete=True):
     cursor.execute(query, values)
     res = cursor.fetchall()
     retval = None;
-    print(res)
     if res:
         retval = dictFromPoemRow(cursor, res[0])
     conn.close()
@@ -106,15 +113,7 @@ def getSpecificPoem(dbconfig, poem_id=181):
     conn.close()
     return retval
 
-def writeNewPoemForPage(dbconfig, page_id=21):
-    d = {}
-    d['complete'] = 0
-    d['starting_page'] = page_id
-    d['id'] = 1337
-    writePoemAsync(dbconfig, page_id)
-    return d;
-
-def writeNewPoemForPage(dbconfig, pageID):
+def writeNewPoemForPage(dbconfig, pageID, task_queue):
     ## Create the row for the cached posStringForPoemLines
     write_conn = mysql.connector.connect(user=dbconfig['user'],
                                         password=dbconfig['password'],
@@ -138,7 +137,9 @@ def writeNewPoemForPage(dbconfig, pageID):
     d['id'] = poem_id
 
     ## Write the poem asynchronously
-    writePoemAsync(dbconfig, pageID, poem_id)
+    # task_queue.put((printMoose, ("Moose", )))
+    writePoem(dbconfig, pageID, poem_id, task_queue)
+    # parent_pool.apply_async(writePoem, args=(dbconfig, pageID, poem_id, None))
 
     return d
 
@@ -175,5 +176,3 @@ def getPageId(dbconfig, title):
         return pageID
     else:
         return None
-
-     

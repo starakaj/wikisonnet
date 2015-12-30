@@ -14,7 +14,7 @@ if use_model:
     from nltk import word_tokenize
     import gensim
     model_path = '/Users/samtarakajian/Documents/wikisonnet/word2vec/wiki-latest.en.model'
-REQUIRED_POSSIBILITY_COUNT = 100
+REQUIRED_POSSIBILITY_COUNT = 16
 
 n2p = {
     "pos_len_m1":"pos_m1",
@@ -167,13 +167,12 @@ def composeLinesAtIndexes(pageID, poem_form, dbconfig, search_groups, composed_l
             previous_line = None
             if not poem_form.lines[idx].starts and ret_composed_lines[idx-1]:
                 previous_line = dbreader.textForLineID(dbconn, ret_composed_lines[idx-1]['id'])
-                print previous_line
             next_lines = getBestLines(dbconn, hard_constraints, possible_lines, poem_form, idx, previous_line=previous_line, count=1)
             ret_composed_lines[idx] = next_lines[0]
     dbconn.close()
     return ret_composed_lines
 
-def poemForPageID(pageID, sonnet_form_name, dbconfig, multi=False):
+def poemForPageID(pageID, sonnet_form_name, dbconfig, multi=False, output_queue=None, callback=None, user_info=None):
     dbconn = dbconnect.MySQLDatabaseConnection(dbconfig["database"], dbconfig["user"], dbconfig["host"], dbconfig["password"])
 
     ## Decide what kind of poem you're going to write
@@ -224,6 +223,13 @@ def poemForPageID(pageID, sonnet_form_name, dbconfig, multi=False):
     ## Now compose each stanza in parallel
     stanzas = makeStanzas(parallel_starts, parallel_ends, poem_form)
 
+    dbconn.close()
+
+    if output_queue is not None:
+        for x in stanzas:
+            output_queue.put((composeLinesAtIndexes, (pageID, poem_form, dbconfig, search_groups, composed_lines, x), callback, user_info))
+        return
+
     if multi:
         pool = Pool(processes=4)
         pp = [pool.apply_async(composeLinesAtIndexes, args=(pageID, poem_form, dbconfig, search_groups, composed_lines, x)) for x in stanzas]
@@ -240,7 +246,6 @@ def poemForPageID(pageID, sonnet_form_name, dbconfig, multi=False):
                 if p[i] is not None:
                     composed_lines[i] = p[i]
                     break
-    dbconn.close()
     return composed_lines
 
 def addTextToLines(dbconn, lines):

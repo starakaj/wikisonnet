@@ -19,7 +19,7 @@ import json
 import flask
 from flask import request, Response, jsonify, session
 import wikiconnector
-from multiprocessing import Pool, cpu_count
+from multiprocessing import Manager, Queue, cpu_count, Process
 from flask.ext.cors import CORS
 # from IPython import embed
 
@@ -41,14 +41,24 @@ application.config.from_pyfile('application.config', silent=True)
 HOST_IP = 'localhost'if application.config.get('HOST_IP') is None else application.config.get('HOST_IP')
 DB_CONFIG = 'local'if application.config.get('DB_CONFIG') is None else application.config.get('DB_CONFIG')
 PROCESS_COUNT = 1 if application.config.get('PROCESS_COUNT') is None else application.config.get('PROCESS_COUNT')
-dbconfig = wikiconnector.dbconfigForName()
+dbconfig = wikiconnector.dbconfigForName(DB_CONFIG)
 
 # Only enable Flask debugging if an env var is set to true
 application.debug = application.config['FLASK_DEBUG'] in ['true', 'True']
 
 # Pool of worker processes
-process_count = 50
-worker_pool = None
+process_count = 4
+try:
+    process_count = cpu_count();
+except:
+    print "Could not determine cpu_count--defaulting to {} processes".format(process_count)
+task_queue = None
+
+def worker(task_queue):
+    for func, args, callback, userinfo in iter(task_queue.get, 'STOP'):
+        res = apply(func, args)
+        if callback:
+            callback(res, userinfo)
 
 @application.route('/')
 def welcome():
@@ -79,13 +89,17 @@ def compose():
     if poem_dict is None:
         poem_dict = wikiconnector.getCachedPoemForPage(dbconfig, page_id, complete=False)
     if poem_dict is None:
-        poem_dict = wikiconnector.writeNewPoemForPage(dbconfig, page_id)
+        poem_dict = wikiconnector.writeNewPoemForPage(dbconfig, page_id, task_queue)
     return jsonify(poem_dict)
 
 @application.route('/api/v2/poems/<poem_id>', methods=['GET'])
 def lookup(poem_id):
     poem_dict = wikiconnector.getSpecificPoem(dbconfig, poem_id)
+    print poem_dict
     return jsonify(poem_dict)
 
 if __name__ == '__main__':
+    task_queue = Manager().Queue()
+    for i in range(process_count):
+        Process(target=worker, args=(task_queue,)).start()
     application.run(host='0.0.0.0', port=80)
