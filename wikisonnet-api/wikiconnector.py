@@ -81,14 +81,17 @@ def dictFromPoemRow(cursor, poem_row_dict):
 
     return d
 
-def getCachedPoemForPage(dbconfig, page_id=21, complete=True):
+def getCachedPoemForPage(dbconfig, page_id=21, complete=True, session_id=0):
     conn = mysql.connector.connect(user=dbconfig['user'],
                                     password=dbconfig['password'],
                                     host=dbconfig['host'],
                                     database=dbconfig['database'])
     cursor = conn.cursor(dictionary=True)
-    query = """SELECT * FROM cached_poems WHERE page_id=%s AND complete=%s LIMIT 1;"""
-    values = (page_id, complete)
+    query = """SELECT cached_poems.* FROM cached_poems 
+                LEFT OUTER JOIN sessions_poems ON cached_poems.id = sessions_poems.poem_id  
+                WHERE page_id=%s AND complete=%s AND (session_id!=%s OR session_id IS NULL)
+                ORDER BY RAND() LIMIT 1;"""
+    values = (page_id, complete, session_id)
     cursor.execute(query, values)
     res = cursor.fetchall()
     retval = None;
@@ -176,3 +179,22 @@ def getPageId(dbconfig, title):
         return pageID
     else:
         return None
+
+def addPoemToSession(dbconfig, poem_id, session_id):
+    conn = mysql.connector.connect(user=dbconfig['user'],
+                                    password=dbconfig['password'],
+                                    host=dbconfig['host'],
+                                    database=dbconfig['database'])
+    cursor = conn.cursor()
+    query = """INSERT IGNORE INTO sessions_poems (session_id, poem_id) VALUES(%s, %s);"""
+    values=(session_id, poem_id)
+    cursor.execute(query, values)
+    cursor.execute("""COMMIT;""");
+    query = """SELECT LAST_INSERT_ID();"""
+    cursor.execute(query)
+    res = cursor.fetchall()
+    conn.close()
+
+    return res[0][0]
+
+     
