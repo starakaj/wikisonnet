@@ -21,7 +21,7 @@ from flask import request, Response, jsonify, session
 import wikiconnector
 from multiprocessing import Manager, Queue, cpu_count, Process
 from flask.ext.cors import CORS
-from IPython import embed
+# from IPython import embed
 
 # Default config vals
 THEME = 'default' if os.environ.get('THEME') is None else os.environ.get('THEME')
