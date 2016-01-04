@@ -133,30 +133,24 @@ def getBestLines(dbconn, hard_constraints, lines, poem_form, line_index, previou
 
     ## Sort based on how you're likely to continue
     if (not poem_form.lines[line_index].starts and
-        poem_form.order[line_index] < poem_form.order[line_index-1]
+        poem_form.order[line_index] < poem_form.order[line_index-1] and
+        count is 1
         ):
         lines = sorted(lines, key = lambda x: dbreader.posCountsForLine(dbconn, x, 'leading'), reverse=True )
     elif (not poem_form.lines[line_index].ends and
-        poem_form.order[line_index] < poem_form.order[line_index+1]
+        poem_form.order[line_index] < poem_form.order[line_index+1] and
+        count is 1
         ):
-        if use_model and previous_line is not None:
-            model = gensim.models.Word2Vec.load(model_path)
-
-            ## Get the text for each of the lines
-            cont_text = [dbreader.textForLineID(dbconn, cnt['id']) for cnt in lines]
-
-            ## Sort the continuations
-            sen1 = (u" ").join(word_tokenize(previous_line))
-            con_sens = [(i, u" ".join(word_tokenize(cont_text[i]))) for i in range(len(cont_text))]
-            con_sens = sorted(con_sens, key=lambda x: model.score([(sen1 + " " + x[1]).split()])[0], reverse=True)
-            lines = [lines[i] for (i,_) in con_sens]
-        else:
-            lines = sorted(lines, key = lambda x: dbreader.posCountsForLine(dbconn, x, 'lagging'), reverse=True )
+        lines = sorted(lines, key = lambda x: dbreader.posCountsForLine(dbconn, x, 'lagging'), reverse=True )
     else:
         lines = sorted(lines, key = lambda x: random.random())
+
+    ## Finally, sort within the sort by how close to the original page the lines are
+    lines = sorted(lines, key = lambda x: x['group_level'])
+
     return lines[:count]
 
-def composeLinesAtIndexes(pageID, poem_form, dbconfig, search_groups, composed_lines, indexes):
+def composeLinesAtIndexes(pageID, poem_form, dbconfig, search_groups, composed_lines, indexes, callback=None, user_info=None):
     dbconn = dbconnect.MySQLDatabaseConnection(dbconfig["database"], dbconfig["user"], dbconfig["host"], dbconfig["password"])
     ret_composed_lines = copy.deepcopy(composed_lines)
     for idx in indexes:
@@ -169,6 +163,8 @@ def composeLinesAtIndexes(pageID, poem_form, dbconfig, search_groups, composed_l
                 previous_line = dbreader.textForLineID(dbconn, ret_composed_lines[idx-1]['id'])
             next_lines = getBestLines(dbconn, hard_constraints, possible_lines, poem_form, idx, previous_line=previous_line, count=1)
             ret_composed_lines[idx] = next_lines[0]
+            if callback is not None:
+                callback(ret_composed_lines, user_info)
     dbconn.close()
     return ret_composed_lines
 
@@ -183,7 +179,7 @@ def poemForPageID(pageID, sonnet_form_name, dbconfig, multi=False, output_queue=
 
     ## Get the groups associated with a given page (perhaps construct table views for speed?)
     search_groups = [{'pageIDs':[pageID]},
-                    # {'pageIDs':dbreader.pagesLinkedFromPageID(dbconn, pageID)},
+                    {'pageIDs':dbreader.pagesLinkedFromPageID(dbconn, pageID), 'page_major_category':dbreader.categoryForPageID(dbconn, pageID, 'major')},
                     # {'line_minor_category':dbreader.categoryForPageID(dbconn, pageID, 'minor')},
                     # {'line_major_category':dbreader.categoryForPageID(dbconn, pageID, 'major')},
                     {'page_minor_category':dbreader.categoryForPageID(dbconn, pageID, 'minor')},
@@ -220,6 +216,10 @@ def poemForPageID(pageID, sonnet_form_name, dbconfig, multi=False, output_queue=
         for i,l in enumerate(ending_lines):
             composed_lines[parallel_ends[i].index] = l
 
+    ## If there's a callback, call it
+    if callback is not None:
+        callback(composed_lines, user_info)
+
     ## Now compose each stanza in parallel
     stanzas = makeStanzas(parallel_starts, parallel_ends, poem_form)
 
@@ -227,7 +227,7 @@ def poemForPageID(pageID, sonnet_form_name, dbconfig, multi=False, output_queue=
 
     if output_queue is not None:
         for x in stanzas:
-            output_queue.put((composeLinesAtIndexes, (pageID, poem_form, dbconfig, search_groups, composed_lines, x), callback, user_info))
+            output_queue.put((composeLinesAtIndexes, (pageID, poem_form, dbconfig, search_groups, composed_lines, x, callback, user_info), callback, user_info))
         return
 
     if multi:

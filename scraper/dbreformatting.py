@@ -1,4 +1,4 @@
-# from dbhash import columnsDictToSHA
+from server.dbhash import columnsDictToSHA
 import mysql.connector
 import hashlib
 import json
@@ -183,11 +183,11 @@ def countPOS(commit_interval=1000, print_interval=1000):
     write_conn.close()
 
 def populatePOSHashes(commit_interval=1000, print_interval=1000):
-    read_conn = mysql.connector.connect(user="william", password="Sh4kespeare", host="localhost", database="wikisonnet", charset='utf8', use_unicode=True)
-    write_conn = mysql.connector.connect(user="william", password="Sh4kespeare", host="localhost", database="wikisonnet", charset='utf8', use_unicode=True)
+    read_conn = mysql.connector.connect(user="william", password="Sh4kespeare", host="localhost", database="wikisonnet")
+    write_conn = mysql.connector.connect(user="william", password="Sh4kespeare", host="localhost", database="wikisonnet")
     read_cursor = read_conn.cursor(dictionary=True)
     write_cursor = write_conn.cursor()
-    query = """SELECT id, pos_m2, pos_m1, pos_0, pos_1, pos_len_m2, pos_len_m1, pos_len, pos_len_p1 FROM iambic_lines"""
+    query = """SELECT id, pos_m2, pos_m1, pos_0, pos_1, pos_len_m2, pos_len_m1, pos_len, pos_len_p1 FROM iambic_lines_no_proper"""
     read_cursor.execute(query)
     written=0
     commit_timer = commit_interval
@@ -208,7 +208,7 @@ def populatePOSHashes(commit_interval=1000, print_interval=1000):
             d = {key:row[key] for key in tasks[task_title]}
             dict_sha = columnsDictToSHA(d)
             shas[task_title] = dict_sha
-        query = """INSERT INTO pos_hashes VALUES (%s, %s, %s, %s, %s, %s, %s)"""
+        query = """INSERT INTO pos_hashes_no_proper VALUES (%s, %s, %s, %s, %s, %s, %s)"""
         values = (row["id"], shas["leading_4gram"], shas["leading_3gram"], shas["leading_2gram"], shas["lagging_4gram"], shas["lagging_3gram"], shas["lagging_2gram"])
         write_cursor.execute(query, values)
         written+=1

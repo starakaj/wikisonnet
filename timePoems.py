@@ -30,7 +30,7 @@ if __name__ == '__main__':
     res = cursor.fetchall()
     for i in range(args.count):
         random_id = random.sample(res, 1)[0][0]
-        # random_id = 23680998
+        # random_id = 534366
         poem = wikibard.poemForPageID(random_id, 'elizabethan', dbconfig, multi=True)
         lines = [dbreader.textForLineID(dbconn, p['id']) for p in poem]
         if outf:
