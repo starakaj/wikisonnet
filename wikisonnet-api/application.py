@@ -23,6 +23,10 @@ from multiprocessing import Manager, Queue, cpu_count, Process
 from flask.ext.cors import CORS
 # from IPython import embed
 
+import dotmatrix
+
+print_to_dotmatrix = False
+
 # Default config vals
 THEME = 'default' if os.environ.get('THEME') is None else os.environ.get('THEME')
 FLASK_DEBUG = 'false' if os.environ.get('FLASK_DEBUG') is None else os.environ.get('FLASK_DEBUG')
@@ -88,6 +92,7 @@ def compose():
     poem_dict = wikiconnector.getCachedPoemForPage(dbconfig, page_id, True, session['id'])
     if poem_dict is not None:
         wikiconnector.addPoemToSession(dbconfig, poem_dict['id'], session['id'])
+        print_poem(page_id, poem_dict)
     if poem_dict is None:
         poem_dict = wikiconnector.getCachedPoemForPage(dbconfig, page_id, False)
     if poem_dict is None:
@@ -99,7 +104,14 @@ def lookup(poem_id):
     poem_dict = wikiconnector.getSpecificPoem(dbconfig, poem_id)
     if poem_dict['complete']:
         wikiconnector.addPoemToSession(dbconfig, poem_dict['id'], session['id'])
+        print_poem(poem_dict['starting_page'], poem_dict)
     return jsonify(poem_dict)
+
+def print_poem(page_id, poem_dict):
+    if print_to_dotmatrix:
+        title = wikiconnector.getPageTitle(dbconfig, page_id)
+        lines = [r["text"] for r in poem_dict["lines"]]
+        dotmatrix.printPoem(title, lines)
 
 if __name__ == '__main__':
     task_queue = Manager().Queue()

@@ -205,6 +205,25 @@ def getPageId(dbconfig, title):
     else:
         return None
 
+def getPageTitle(dbconfig, page_id):
+    conn = mysql.connector.connect(user=dbconfig['user'],
+                                    password=dbconfig['password'],
+                                    host=dbconfig['host'],
+                                    database=dbconfig['database'])
+    cursor = conn.cursor()
+    query = """SELECT name FROM page_names WHERE page_id = %s"""
+    values = (page_id,)
+    cursor.execute(query, values)
+    res = cursor.fetchall()
+    cursor.close()
+    if len(res) is not 0:
+        title = res[0][0]
+        title = title.replace("_", " ")
+        return title
+    else:
+        return None
+
+
 def addPoemToSession(dbconfig, poem_id, session_id):
     conn = mysql.connector.connect(user=dbconfig['user'],
                                     password=dbconfig['password'],
