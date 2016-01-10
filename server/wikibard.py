@@ -80,7 +80,7 @@ def flexibleConstraints(line_index, poem_form, completed_lines):
     return fc
 
 def fetchPossibleLines(dbconn, search_constraints, group, composed_lines, view_constraints=None, temp_view_name='tv', num=REQUIRED_POSSIBILITY_COUNT):
-    is_random = 'pageIDs' in group or 'minor_category' in group or 'major_category' in group
+    is_random = True or 'pageIDs' in group or 'minor_category' in group or 'major_category' in group
     options={"num":num, "random":is_random, "optimized":optimized, "print_statement":False, "subquery":False}
     if view_constraints:
         options['view_name'] = temp_view_name;
@@ -173,6 +173,7 @@ def poemForPageID(pageID, sonnet_form_name, dbconfig, multi=False, output_queue=
 
     ## Decide what kind of poem you're going to write
     poem_form = poemform.PoemForm.NamedPoemForm(sonnet_form_name)
+    # poem_form.scrambleOrder()
 
     ## Follow the redirect, if you need to
     pageID = dbreader.followRedirectForPageID(dbconn, pageID)
@@ -188,11 +189,43 @@ def poemForPageID(pageID, sonnet_form_name, dbconfig, multi=False, output_queue=
 
     composed_lines = [None for _ in poem_form.lines]
 
+    ## First, get random lines from the starting page itself (if any exist)
+    hard_constraints = []
+    flexible_constraints = []
+    possible_lines = computePossibleLines(dbconn, hard_constraints, flexible_constraints, [{'pageIDs':[pageID]}], composed_lines, possibility_count=20)
+    filled_stanzas = []
+    if (possible_lines):
+        source_lines = getBestLines(dbconn, hard_constraints, possible_lines, poem_form, 0, count=10)
+        source_lines = filter(lambda x: dbreader.rhymeCountForRhyme(dbconn, x['word'], x['rhyme_part']) > 0, source_lines)
+        order = range(len(poem_form.stanzas))
+        random.shuffle(order)
+        for o in order:
+            s = poem_form.stanzas[o]
+            if len(s) > 2:
+                valid_indexes = range(len(source_lines))
+            else:
+                valid_indexes = [i for i in range(len(source_lines)) if source_lines[i]['starts'] or source_lines[i]['ends']]
+            if valid_indexes:
+                random.shuffle(valid_indexes)
+                line = source_lines.pop(valid_indexes[0])
+                if line['starts']:
+                    r = min(s)
+                    composed_lines[min(s)] = line
+                elif line['ends']:
+                    r = max(s)
+                    composed_lines[max(s)] = line
+                else:
+                    r = random.randint(min(s)+1,max(s)-1)
+                    composed_lines[r] = line
+                poem_form.setStanzaStart(o, r-min(s))
+                filled_stanzas.append(o)
+
     ## For parallelization, separate out each stanza
-    starting_lines = [x for x in poem_form.lines if x.starts]
-    ending_lines = [x for x in poem_form.lines if x.ends]
-    parallel_starts = [x for i,x in enumerate(starting_lines) if poem_form.order[ending_lines[i].index] > poem_form.order[x.index]]
-    parallel_ends = [x for i,x in enumerate(ending_lines) if poem_form.order[starting_lines[i].index] > poem_form.order[x.index]]
+    unfilled_stanzas = [poem_form.stanzas[i] for i in range(len(poem_form.stanzas)) if i not in filled_stanzas]
+    starting_lines = [poem_form.lines[i[0]] for i in unfilled_stanzas]
+    parallel_starts = [s for s in starting_lines if s.starts]
+    parallel_ends = [s for s in starting_lines if s.ends]
+    parallel_mids = [s for s in starting_lines if not s.ends and not s.starts]
 
     ## Compose all the parallelizable starting lines at once
     if parallel_starts:
@@ -216,12 +249,23 @@ def poemForPageID(pageID, sonnet_form_name, dbconfig, multi=False, output_queue=
         for i,l in enumerate(ending_lines):
             composed_lines[parallel_ends[i].index] = l
 
+    ## Finally, same for all the parallelizable mid lines
+    if parallel_mids:
+        idx = parallel_mids[0].index
+        hard_constraints = hardConstraints(idx, poem_form, composed_lines)
+        flexible_constraints = flexibleConstraints(idx, poem_form, composed_lines)
+        possible_lines = computePossibleLines(dbconn, hard_constraints, flexible_constraints, search_groups, composed_lines, possibility_count=10)
+        midding_lines = getBestLines(dbconn, hard_constraints, possible_lines, poem_form, idx, count=10)
+        midding_lines = random.sample(midding_lines, len(parallel_mids))
+        for i,l in enumerate(midding_lines):
+            composed_lines[parallel_mids[i].index] = l
+
     ## If there's a callback, call it
     if callback is not None:
         callback(composed_lines, user_info)
 
     ## Now compose each stanza in parallel
-    stanzas = makeStanzas(parallel_starts, parallel_ends, poem_form)
+    stanzas = poem_form.stanzas
 
     dbconn.close()
 

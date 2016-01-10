@@ -11,7 +11,7 @@ parser.add_argument('--output', action='store', type=str, default='poems.txt', h
 args = parser.parse_args()
 
 if __name__ == '__main__':
-    conn = dbconnect.MySQLDatabaseConnection.connectionWithConfiguration('local')
+    conn = dbconnect.MySQLDatabaseConnection.connectionWithConfiguration('digitalocean')
     cursor = conn.connection.cursor(dictionary=True)
     query = """SELECT COUNT(*) FROM cached_poems WHERE complete=1;"""
     cursor.execute(query);

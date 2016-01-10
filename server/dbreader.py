@@ -238,7 +238,7 @@ def searchForLines(dbconn, group=None, constraints=None, options=None):
     view_constraints = options.get('view_constraints', [])
     table_name = options.get('view_name', 'iambic_lines')
 
-    query = """SELECT {0}.id, {0}.page_id, word, rhyme_part, pos_m2, pos_m1, pos_0, pos_1, pos_len_m2, pos_len_m1, pos_len, pos_len_p1, word_len_m1, word_len FROM {0} """.format(table_name)
+    query = """SELECT {0}.id, {0}.page_id, word, rhyme_part, starts, ends, pos_m2, pos_m1, pos_0, pos_1, pos_len_m2, pos_len_m1, pos_len, pos_len_p1, word_len_m1, word_len FROM {0} """.format(table_name)
     valueList = [];
     continuing_where = False
     use_subquery = options.get('subquery', False)
