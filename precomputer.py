@@ -53,6 +53,9 @@ def composeSlave(dbconfig, top_pages, remoteconfig):
 def writePoem(dbconfig, page_id, poem_id, remoteconfig):
     ## Write the poem
     poem = wikibard.poemForPageID(page_id, 'elizabethan', dbconfig)
+    if None in poem:
+        print "Error printing poem"
+        return
     print(poem)
     line_ids = [line['id'] for line in poem]
 

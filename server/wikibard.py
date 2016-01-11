@@ -125,6 +125,8 @@ def computePossibleLines(dbconn, hard_constraints, flexible_constraints, search_
     return possible_lines
 
 def getBestLines(dbconn, hard_constraints, lines, poem_form, line_index, previous_line=None, count=1):
+    if len(lines) == 0:
+        return []
     if 'rhyme_part' not in hard_constraints:
         rhyme_counts = map(lambda x:(dbreader.rhymeCountForRhyme(dbconn, x['word'], x['rhyme_part'])), lines)
         total_rhymes = sum(rhyme_counts)
@@ -162,7 +164,8 @@ def composeLinesAtIndexes(pageID, poem_form, dbconfig, search_groups, composed_l
             if not poem_form.lines[idx].starts and ret_composed_lines[idx-1]:
                 previous_line = dbreader.textForLineID(dbconn, ret_composed_lines[idx-1]['id'])
             next_lines = getBestLines(dbconn, hard_constraints, possible_lines, poem_form, idx, previous_line=previous_line, count=1)
-            ret_composed_lines[idx] = next_lines[0]
+            if len(next_lines) > 0:
+                ret_composed_lines[idx] = next_lines[0]
             if callback is not None:
                 callback(ret_composed_lines, user_info)
     dbconn.close()
