@@ -1,7 +1,7 @@
 import mysql.connector
 from flask import jsonify
-import bard.wikibard.wikibard as wikibard
-import bard.db.dbconnect as dbconnect
+import wikibard.wikibard as wikibard
+import db.dbconnect as dbconnect
 from multiprocessing import Process
 
 def printMoose(moose):

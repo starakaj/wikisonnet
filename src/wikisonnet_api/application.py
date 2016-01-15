@@ -114,6 +114,7 @@ def print_poem(page_id, poem_dict):
         dotmatrix.printPoem(title, lines)
 
 def run():
+    global task_queue
     task_queue = Manager().Queue()
     for i in range(process_count):
         Process(target=worker, args=(task_queue,)).start()

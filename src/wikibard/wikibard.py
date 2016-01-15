@@ -1,3 +1,4 @@
+from util.benchmarking import Timer
 from db import dbconnect, dbreader
 import urlparse
 import pdb
@@ -5,7 +6,6 @@ import random
 import poemform
 import copy
 from multiprocessing import Pool
-from util.benchmarking import Timer
 from tabulate import tabulate
 
 optimized = True

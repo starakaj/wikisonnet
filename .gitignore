@@ -1,5 +1,8 @@
 src/scraper/data
 src/wikisonnet_api/bard
+src/wikisonnet_api/db
+src/wikisonnet_api/wikibard
+src/wikisonnet_api/util
 *.pyc
 *.gz
 *.sql
