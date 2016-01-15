@@ -307,7 +307,7 @@ def searchForLines(dbconn, group=None, constraints=None, options=None):
                 pages = group['pageIDs']
                 if len(pages) is 1:
                     query = queryWithAddedWhere(query, """ page_id = %s""", valueList, pages[0])
-                else:
+                elif len(pages) > 0:
                     format_strings = ','.join(['%s'] * len(pages))
                     query = queryWithAddedWhereAppend(query, """ page_id IN (%s)""" % format_strings, valueList, list(pages))
             if 'page_minor_category' in group:
