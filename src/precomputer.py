@@ -1,6 +1,6 @@
-import server.dbconnect as dbconnect
-import server.dbreader as dbreader
-import server.wikibard as wikibard
+import db.dbconnect as dbconnect
+import db.dbreader as dbreader
+import wikibard.wikibard as wikibard
 import mysql.connector
 import argparse
 import random
