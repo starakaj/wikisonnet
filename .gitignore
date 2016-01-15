@@ -1,4 +1,4 @@
-scraper/data
+/src/scraper/data
 *.pyc
 *.gz
 *.sql
@@ -13,3 +13,4 @@ word2vec
 chi-app
 *.sql
 *.zip
+dump
