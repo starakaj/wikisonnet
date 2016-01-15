@@ -1,9 +1,0 @@
-uwsgi:
-  socket: 127.0.0.1:8000
-  master: 1
-  workers: 8
-  chmod-socket: 666
-  auto-procname: 1
-  python-path: .
-  module: wsgi
-  protocol: http

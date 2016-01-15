@@ -1,8 +1,8 @@
 import argparse
-from server.benchmarking import Timer
-import server.wikibard as wikibard
-import server.dbreader as dbreader
-import server.dbconnect as dbconnect
+from util.benchmarking import Timer
+import wikibard.wikibard as wikibard
+import db.dbreader as dbreader
+import db.dbconnect as dbconnect
 import random
 import codecs
 
@@ -30,7 +30,7 @@ if __name__ == '__main__':
     res = cursor.fetchall()
     for i in range(args.count):
         random_id = random.sample(res, 1)[0][0]
-        random_id = 35607283
+        # random_id = 35607283
         poem = wikibard.poemForPageID(random_id, 'elizabethan', dbconfig, multi=True)
         lines = [dbreader.textForLineID(dbconn, p['id']) for p in poem]
         if outf:

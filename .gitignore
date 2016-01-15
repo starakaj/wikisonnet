@@ -1,4 +1,5 @@
-/src/scraper/data
+src/scraper/data
+src/wikisonnet_api/bard
 *.pyc
 *.gz
 *.sql
@@ -7,10 +8,10 @@ dynamodb/dynamodb
 caching_server/dbconfig.yml
 caching_server/data
 dbconfig.yml
-wikisonnet-api/wikibard
 lda
 word2vec
 chi-app
 *.sql
 *.zip
 dump
+output
