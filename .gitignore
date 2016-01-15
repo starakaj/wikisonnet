@@ -11,3 +11,5 @@ wikisonnet-api/wikibard
 lda
 word2vec
 chi-app
+*.sql
+*.zip
