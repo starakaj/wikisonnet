@@ -285,7 +285,7 @@ def poemForPageID(pageID, sonnet_form_name, dbconfig, multi=False, output_queue=
 
     if output_queue is not None:
         for x in stanzas:
-            output_queue.put((composeLinesAtIndexes, (pageID, poem_form, dbconfig, search_groups, managed_composed_lines, x, callback, user_info), callback, user_info))
+            output_queue.put((composeLinesAtIndexes, (pageID, poem_form, dbconfig, search_groups, composed_lines, x, callback, user_info), callback, user_info))
         return
 
     if multi:
