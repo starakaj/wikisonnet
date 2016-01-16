@@ -1,7 +1,7 @@
-import server.dbconnect as dbconnect
-import dbwriter
-import server.dbreader as dbreader
-from server.benchmarking import Timer
+import db.dbconnect as dbconnect
+import db.dbwriter as dbwriter
+import db.dbreader as dbreader
+from util.benchmarking import Timer
 import wikiutils
 import wordutils
 import mwparserfromhell
@@ -12,6 +12,7 @@ from pattern.en import parse
 import re
 import gensim
 import logging
+import os
 
 class ScanContext:
     def __init__(self, extractor, dbconn, id2word, lda):
@@ -40,8 +41,9 @@ def scan(extractor_filename, methods=[], startIdx=0, skipevery=1, offset=0):
     commit_idx=0
     commit_ceil=1000
     ignore_namespaces = 'Wikipedia Category File Portal Template MediaWiki User Help Book Draft'.split()
-    id2word = gensim.corpora.Dictionary.load_from_text('lda/results_wordids.txt.bz2')
-    lda = gensim.models.ldamodel.LdaModel.load('lda/lda_1000')
+    thisdir = "/".join(os.path.realpath(__file__).split("/")[:-1]) + "/"
+    id2word = gensim.corpora.Dictionary.load_from_text(thisdir + 'lda/results_wordids.txt.bz2')
+    lda = gensim.models.ldamodel.LdaModel.load(thisdir + 'lda/lda_1000')
     ctx = ScanContext(extractor, dbconn, id2word, lda)
 
     for ex in extractor:
@@ -157,6 +159,11 @@ def scanLinks(ctx):
         ## 2. Add outgoing links for the page to the outgoing links table
         dbwriter.storeInternalLinksForPage(dbconn, page_id, link_ids)
 
+def scanRevisions(ctx):
+    extractor = ctx.extractor
+    dbconn = ctx.dbconn
+    dbwriter.storeRevisionForPage(dbconn, extractor.pageIDForCurrentPage(), extractor.revisionForCurrentPage(), doCommit=False)
+
 def displayCategories(extractor):
     foundModels = []
     foundFormats = []
@@ -203,4 +210,4 @@ def prepareInputsForTopicModelling(extractor, ofile):
         if page_idx > 1000:
             break
 
-functionDict = {'names':scanNames, 'links':scanLinks, 'redirects':scanRedirects, 'categories':scanCategories}
+functionDict = {'names':scanNames, 'links':scanLinks, 'redirects':scanRedirects, 'categories':scanCategories, 'revisions':scanRevisions}

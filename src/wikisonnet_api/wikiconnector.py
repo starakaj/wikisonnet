@@ -97,12 +97,16 @@ def dictFromPoemRow(cursor, poem_row_dict):
     empty_dict = {'page_id':0, 'text':""}
     if len(line_ids_nonone) > 0:
         format_strings = ','.join(['%s'] * len(line_ids_nonone))
-        query = """SELECT id, page_id, line FROM iambic_lines WHERE id IN (%s);""" % format_strings
+        query = (
+            """SELECT iambic_lines.id, page_id, line, revision FROM iambic_lines"""
+            """ LEFT JOIN lines_revisions ON iambic_lines.id = lines_revisions.line_id"""
+            """ WHERE iambic_lines.id IN (%s);""" % format_strings
+        )
         values = tuple(line_ids_nonone)
         cursor.execute(query, values)
         res = cursor.fetchall()
-        line_dict = {r['id']:(r['page_id'], r['line']) for r in res}
-        d['lines'] = [{'page_id':line_dict[_id][0], 'text':line_dict[_id][1]} if _id else empty_dict for _id in line_ids]
+        line_dict = {r['id']:(r['page_id'], r['line'], r['revision']) for r in res}
+        d['lines'] = [{'page_id':line_dict[_id][0], 'text':line_dict[_id][1], 'revision':line_dict[_id][2]} if _id else empty_dict for _id in line_ids]
 
     return d
 

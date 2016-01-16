@@ -1,4 +1,4 @@
-from server.benchmarking import Timer
+from util.benchmarking import Timer
 import random
 import re
 import nltk

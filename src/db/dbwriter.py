@@ -48,6 +48,19 @@ def storeInternalLinksForPage(dbconn, pageID, linkIDs):
     dbconn.connection.commit()
     cursor.close()
 
+def storeRevisionForPage(dbconn, pageID, revision, doCommit=True):
+    cursor = dbconn.connection.cursor()
+    query = ("""INSERT INTO pages_revisions (page_id, revision)"""
+            """ VALUES (%s, %s)"""
+            """ ON DUPLICATE KEY UPDATE"""
+            """ revision=VALUES(revision);"""
+            )
+    values = (pageID, revision)
+    cursor.execute(query, values)
+    if doCommit:
+        dbconn.connection.commit()
+    cursor.close()
+
 ## store one iambic line in the database
 def storePoemLine(dbconn, pageID, word, text, pos, rhyme, options=None):
     cursor = dbconn.connection.cursor()

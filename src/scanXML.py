@@ -1,4 +1,4 @@
-import server.wikibard as wikibard
+import wikibard.wikibard as wikibard
 import scraper.scanner as scanner
 import sys
 import codecs
@@ -16,6 +16,7 @@ parser.add_argument('-i', '--iambic', action='store_true', default=False, help="
 parser.add_argument('-r', '--redirect', action='store_true', default=False, help="Store page-page redirects (names must already be saved)")
 parser.add_argument('-l', '--links', action='store_true', default=False, help="Store page-page links (names must already be saved)")
 parser.add_argument('-c', '--categories', action='store_true', default=False, help="Store categories (names must already be saved)")
+parser.add_argument('-s', '--revisions', action='store_true', default=False, help="Store revisions")
 parser.add_argument('--processes', action='store', type=int, default=1, help="Number of separate processes to run")
 parser.add_argument('--skip', action='store', type=int, default=1, help="How many nodes to skip per process. --skip=2 will scan every other node")
 parser.add_argument('--offset', action='store', type=int, default=0, help="Use with --skip to offset")
@@ -30,6 +31,8 @@ if args.links:
     methods.append('links')
 if args.categories:
     methods.append('categories')
+if args.revisions:
+    methods.append('revisions')
 
 pool = []
 if args.processes>1:

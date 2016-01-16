@@ -1,9 +1,9 @@
-from server.dbhash import columnsDictToSHA
+from dbhash import columnsDictToSHA
 import mysql.connector
 import hashlib
 import json
-import server.benchmarking as benchmarking
-from server.wikibard import poemForPageID
+import util.benchmarking as benchmarking
+from wikibard.wikibard import poemForPageID
 import itertools
 from multiprocessing import Pool
 import gensim
@@ -327,6 +327,41 @@ def categorizeLines(commit_interval=1000, print_interval=1000):
 
         query = """INSERT INTO line_categories VALUES (%s, %s, %s) ON DUPLICATE KEY UPDATE major_category=VALUES(major_category), minor_category=VALUES(minor_category);"""
         values = (row["id"], minor_cat, major_cat)
+        write_cursor.execute(query, values)
+        written+=1
+
+        print_timer = print_timer-1
+        if print_timer==0:
+            print "Updated {}".format(written)
+            print_timer = print_interval
+        commit_timer = commit_timer-1
+        if commit_timer==0:
+            write_conn.commit()
+            commit_timer = commit_interval
+
+    write_conn.commit()
+    read_cursor.close()
+    read_conn.close()
+    write_conn.close()
+
+def addRevisionToLines(commit_interval=1000, print_interval=1000):
+    read_conn = mysql.connector.connect(user="william", password="Sh4kespeare", host="localhost", database="wikisonnet")
+    write_conn = mysql.connector.connect(user="william", password="Sh4kespeare", host="localhost", database="wikisonnet")
+    read_cursor = read_conn.cursor(dictionary=True)
+    write_cursor = write_conn.cursor()
+    written=0
+    commit_timer = commit_interval
+    print_timer = print_interval
+
+    query = """SELECT iambic_lines.id, revision FROM iambic_lines JOIN pages_revisions ON iambic_lines.page_id = pages_revisions.page_id;"""
+    read_cursor.execute(query)
+
+    for row in read_cursor:
+        line_id = row['id']
+        revision = row['revision']
+
+        query = """INSERT INTO lines_revisions (line_id, revision) VALUES (%s, %s) ON DUPLICATE KEY UPDATE line_id=VALUES(line_id), revision=VALUES(revision);"""
+        values = (line_id, revision)
         write_cursor.execute(query, values)
         written+=1
 

@@ -21,6 +21,10 @@ class WikiTextExtractor:
 
     # Scans until it finds the empty namespace, then stops
     def initializeDefaultNamespace(self):
+        # f = open(self.filename, 'r')
+        # print (f.readline())
+        # f.close()
+        # print (self.filename)
         it = etree.iterparse(self.filename, events=('start-ns',))
         for _, elem in it:
             key = 'default' if elem[0] == '' else elem[0]
@@ -58,9 +62,9 @@ class WikiTextExtractor:
             return p.attrib['title']
         return None
 
-    def revisionIDForCurrentPage(self):
+    def revisionForCurrentPage(self):
         page = self.current_page
-        return page.find('default:revision', self.nsmap).find('default:id', self.nsmap).text
+        return int(page.find('default:revision', self.nsmap).find('default:id', self.nsmap).text)
 
     def timestampForCurrentPage(self):
         page = self.current_page
