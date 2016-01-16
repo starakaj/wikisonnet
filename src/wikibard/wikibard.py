@@ -5,8 +5,9 @@ import pdb
 import random
 import poemform
 import copy
-from multiprocessing import Pool
+from multiprocessing import Pool, Manager
 from tabulate import tabulate
+import os
 
 optimized = True
 use_model = False
@@ -54,6 +55,9 @@ def hardConstraints(line_index, poem_form, composed_lines):
     hc.append({'starts':poem_form.lines[line_index].starts})
     hc.append({'ends':poem_form.lines[line_index].ends})
     rhyming_indexes = poem_form.indexesOfRhymingLinesForIndex(line_index)
+    xcl_lines = [l['id'] for l in composed_lines if l is not None]
+    if xcl_lines:
+        hc.append({'excluded_lines':xcl_lines})
     if rhyming_indexes:
         if composed_lines[rhyming_indexes[0]] is not None:
             hc.append({'rhyme_part':composed_lines[rhyming_indexes[0]]['rhyme_part']})
@@ -157,7 +161,13 @@ def composeLinesAtIndexes(pageID, poem_form, dbconfig, search_groups, composed_l
     ret_composed_lines = copy.deepcopy(composed_lines)
     for idx in indexes:
         if ret_composed_lines[idx] is None:
-            hard_constraints = hardConstraints(idx, poem_form, ret_composed_lines)
+            hard_constraints = hardConstraints(idx, poem_form, composed_lines)
+
+            # print ("pid: " + str(os.getpid()))
+            # for l in composed_lines:
+            #     print ("\t" + str(l))
+            # print ("\n")
+
             flexible_constraints = flexibleConstraints(idx, poem_form, ret_composed_lines)
             possible_lines = computePossibleLines(dbconn, hard_constraints, flexible_constraints, search_groups, ret_composed_lines)
             previous_line = None
@@ -166,6 +176,7 @@ def composeLinesAtIndexes(pageID, poem_form, dbconfig, search_groups, composed_l
             next_lines = getBestLines(dbconn, hard_constraints, possible_lines, poem_form, idx, previous_line=previous_line, count=1)
             if len(next_lines) > 0:
                 ret_composed_lines[idx] = next_lines[0]
+                composed_lines[idx] = ret_composed_lines[idx]
             if callback is not None:
                 callback(ret_composed_lines, user_info)
     dbconn.close()
@@ -273,13 +284,17 @@ def poemForPageID(pageID, sonnet_form_name, dbconfig, multi=False, output_queue=
     dbconn.close()
 
     if output_queue is not None:
+        manager = Manager()
+        managed_composed_lines = manager.list(composed_lines)
         for x in stanzas:
-            output_queue.put((composeLinesAtIndexes, (pageID, poem_form, dbconfig, search_groups, composed_lines, x, callback, user_info), callback, user_info))
+            output_queue.put((composeLinesAtIndexes, (pageID, poem_form, dbconfig, search_groups, managed_composed_lines, x, callback, user_info), callback, user_info))
         return
 
     if multi:
+        manager = Manager()
+        managed_composed_lines = manager.list(composed_lines)
         pool = Pool(processes=4)
-        pp = [pool.apply_async(composeLinesAtIndexes, args=(pageID, poem_form, dbconfig, search_groups, composed_lines, x)) for x in stanzas]
+        pp = [pool.apply_async(composeLinesAtIndexes, args=(pageID, poem_form, dbconfig, search_groups, managed_composed_lines, x)) for x in stanzas]
         poem_pieces = [p.get() for p in pp];
         pool.close()
         pool.join()
