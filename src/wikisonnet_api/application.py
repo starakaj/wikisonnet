@@ -102,7 +102,10 @@ def compose():
 
 @application.route('/api/v2/poems/<int:poem_id>', methods=['GET'])
 def lookup(poem_id):
-    poem_dict = poems.getSpecificPoem(dbconfig, poem_id)
+    if not session.get('id'):
+        session_id = wikiconnector.createSession(dbconfig)
+        session['id'] = session_id
+    poem_dict = wikiconnector.getSpecificPoem(dbconfig, poem_id)
     if poem_dict['complete']:
         if 'id' in session:
             sessions.addPoemToSession(dbconfig, poem_dict['id'], session['id'])
