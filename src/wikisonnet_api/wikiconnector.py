@@ -89,6 +89,7 @@ def dictFromPoemRow(cursor, poem_row_dict):
     d['complete'] = poem_row_dict['complete']
     d['starting_page'] = poem_row_dict['page_id']
     d['id'] = poem_row_dict['id']
+    d['title'] = poem_row_dict['name'].decode('utf-8').replace("_", " ")
 
     ## Get the text for the line ID's
     line_count = len(filter(lambda x:x.startswith('line_'), poem_row_dict.keys()))
@@ -116,9 +117,10 @@ def getCachedPoemForPage(dbconfig, page_id=21, complete=True, session_id=0):
                                     host=dbconfig['host'],
                                     database=dbconfig['database'])
     cursor = conn.cursor(dictionary=True)
-    query = """SELECT cached_poems.* FROM cached_poems
+    query = """SELECT cached_poems.*, page_names.name FROM cached_poems
                 LEFT OUTER JOIN sessions_poems ON cached_poems.id = sessions_poems.poem_id
-                WHERE page_id=%s AND complete=%s AND (session_id!=%s OR session_id IS NULL)
+                JOIN page_names on page_names.page_id = cached_poems.page_id
+                WHERE cached_poems.page_id=%s AND complete=%s AND (session_id!=%s OR session_id IS NULL)
                 ORDER BY RAND() LIMIT 1;"""
     values = (page_id, complete, session_id)
     cursor.execute(query, values)
@@ -135,7 +137,9 @@ def getSpecificPoem(dbconfig, poem_id=181):
                                     host=dbconfig['host'],
                                     database=dbconfig['database'])
     cursor = conn.cursor(dictionary=True)
-    query = """SELECT * FROM cached_poems WHERE id=%s LIMIT 1;"""
+    query = """SELECT cached_poems.*, page_names.name FROM cached_poems 
+                JOIN page_names on page_names.page_id = cached_poems.page_id
+                WHERE cached_poems.id=%s LIMIT 1;"""
     values = (poem_id,)
     cursor.execute(query, values)
     res = cursor.fetchall()
