@@ -3,9 +3,50 @@ from flask import jsonify
 import wikibard.wikibard as wikibard
 import db.dbconnect as dbconnect
 from multiprocessing import Process
+import time
 
-def printMoose(moose):
-    print moose
+def task_processor(dbconfig, condition):
+    # Check if there are any poems that need to be written
+    while (True):
+        condition.acquire()
+        dbconn = dbconnect.MySQLDatabaseConnection(dbconfig['database'], dbconfig['user'], dbconfig['host'], dbconfig['password'])
+        cur = dbconn.connection.cursor(dictionary=True)
+        query = """SELECT * FROM poem_tasks WHERE complete=0 ORDER BY id LIMIT 1;"""
+        cur.execute(query)
+        res  = cur.fetchall()
+        if not res:
+            condition.wait()
+        else:
+            writePoemForTaskRow(dbconfig, res[0])
+        dbconn.close()
+        condition.release()
+
+def writePoemForTaskRow(dbconfig, task):
+    page_id = task["page_id"]
+    poem_id = task["poem_id"]
+    wikibard.poemForPageID(page_id, 'elizabethan', dbconfig, multi=True, callback=stanzaWrite, user_info=(poem_id, dbconfig))
+    dbconn = dbconnect.MySQLDatabaseConnection(dbconfig['database'], dbconfig['user'], dbconfig['host'], dbconfig['password'])
+    cur = dbconn.connection.cursor(dictionary=True)
+    query = """UPDATE poem_tasks SET complete=1, completed_at=CURRENT_TIMESTAMP WHERE id=%s;"""
+    values = (task["id"], )
+    cur.execute(query, values)
+    cur.execute("""COMMIT;""")
+
+def enqueuePoemTaskForPageID(dbconfig, pageID, poemID, task_condition, userdata):
+    dbconn = dbconnect.MySQLDatabaseConnection(dbconfig['database'], dbconfig['user'], dbconfig['host'], dbconfig['password'])
+    cur = dbconn.connection.cursor()
+    query = (
+        """INSERT INTO poem_tasks (source, session, twitter_handle, page_id, poem_id)"""
+        """ VALUES (%s, %s, %s, %s, %s)"""
+    )
+    values = (userdata.get("source"), userdata.get("session"), userdata.get("twitter"), pageID, poemID)
+
+    task_condition.acquire()
+    cur.execute(query, values)
+    cur.execute("""COMMIT;""")
+    dbconn.close()
+    task_condition.notify()
+    task_condition.release()
 
 def stanzaWrite(lines, user_info):
     print lines
@@ -58,11 +99,6 @@ def stanzaWrite(lines, user_info):
 
 def dbconfigForName(name='local'):
     return dbconnect.MySQLDatabaseConnection.dbconfigForName(name)
-
-def writePoem(dbconfig, page_id, poem_id, queue=None):
-    ## Write the poem
-    print "Beginning synchronous write"
-    wikibard.poemForPageID(page_id, 'elizabethan', dbconfig, output_queue=queue, callback=stanzaWrite, user_info=(poem_id, dbconfig))
 
 def getRandomPoemTitle(dbconfig):
     conn = mysql.connector.connect(user=dbconfig['user'],
@@ -137,7 +173,7 @@ def getSpecificPoem(dbconfig, poem_id=181):
                                     host=dbconfig['host'],
                                     database=dbconfig['database'])
     cursor = conn.cursor(dictionary=True)
-    query = """SELECT cached_poems.*, page_names.name FROM cached_poems 
+    query = """SELECT cached_poems.*, page_names.name FROM cached_poems
                 JOIN page_names on page_names.page_id = cached_poems.page_id
                 WHERE cached_poems.id=%s LIMIT 1;"""
     values = (poem_id,)
@@ -149,7 +185,7 @@ def getSpecificPoem(dbconfig, poem_id=181):
     conn.close()
     return retval
 
-def writeNewPoemForPage(dbconfig, pageID, task_queue):
+def writeNewPoemForPage(dbconfig, pageID, task_condition, userdata):
     ## Create the row for the cached posStringForPoemLines
     write_conn = mysql.connector.connect(user=dbconfig['user'],
                                         password=dbconfig['password'],
@@ -172,10 +208,8 @@ def writeNewPoemForPage(dbconfig, pageID, task_queue):
     d['starting_page'] = pageID
     d['id'] = poem_id
 
-    ## Write the poem asynchronously
-    # task_queue.put((printMoose, ("Moose", )))
-    writePoem(dbconfig, pageID, poem_id, task_queue)
-    # parent_pool.apply_async(writePoem, args=(dbconfig, pageID, poem_id, None))
+    ## Add the poem to the task queue database
+    enqueuePoemTaskForPageID(dbconfig, pageID, poem_id, task_condition, userdata)
 
     return d
 

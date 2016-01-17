@@ -292,12 +292,12 @@ def poemForPageID(pageID, sonnet_form_name, dbconfig, multi=False, output_queue=
         manager = Manager()
         managed_composed_lines = manager.list(composed_lines)
         pool = Pool(processes=4)
-        pp = [pool.apply_async(composeLinesAtIndexes, args=(pageID, poem_form, dbconfig, search_groups, managed_composed_lines, x)) for x in stanzas]
+        pp = [pool.apply_async(composeLinesAtIndexes, args=(pageID, poem_form, dbconfig, search_groups, managed_composed_lines, x, callback, user_info)) for x in stanzas]
         poem_pieces = [p.get() for p in pp];
         pool.close()
         pool.join()
     else:
-        poem_pieces = [composeLinesAtIndexes(pageID, poem_form, dbconfig, search_groups, composed_lines, x) for x in stanzas]
+        poem_pieces = [composeLinesAtIndexes(pageID, poem_form, dbconfig, search_groups, composed_lines, x, callback, user_info) for x in stanzas]
 
     ## Piece the results back together
     for i,l in enumerate(composed_lines):

@@ -19,7 +19,7 @@ import json
 import flask
 from flask import request, Response, jsonify, session
 import wikiconnector
-from multiprocessing import Manager, Queue, cpu_count, Process
+from multiprocessing import Manager, Queue, cpu_count, Process, Condition
 from flask.ext.cors import CORS
 # from IPython import embed
 
@@ -56,13 +56,8 @@ try:
     process_count = cpu_count();
 except:
     print "Could not determine cpu_count--defaulting to {} processes".format(process_count)
-task_queue = None
-
-def worker(task_queue):
-    for func, args, callback, userinfo in iter(task_queue.get, 'STOP'):
-        res = apply(func, args)
-        if callback:
-            callback(res, userinfo)
+task_process = None
+task_condition = None
 
 @application.route('/')
 def welcome():
@@ -97,7 +92,11 @@ def compose():
     if poem_dict is None:
         poem_dict = wikiconnector.getCachedPoemForPage(dbconfig, page_id, False)
     if poem_dict is None:
-        poem_dict = wikiconnector.writeNewPoemForPage(dbconfig, page_id, task_queue)
+        if session.get('id'):
+            userdata = {"source":"website", "session":session["id"]}
+            poem_dict = wikiconnector.writeNewPoemForPage(dbconfig, page_id, task_condition, userdata)
+        else:
+            return jsonify({"error":"You need sessions for this to work"})
     return jsonify(poem_dict)
 
 @application.route('/api/v2/poems/<poem_id>', methods=['GET'])
@@ -116,10 +115,10 @@ def print_poem(page_id, poem_dict):
         dotmatrix.printPoem(title, lines)
 
 def run():
-    global task_queue
-    task_queue = Manager().Queue()
-    for i in range(process_count):
-        Process(target=worker, args=(task_queue,)).start()
+    global task_process
+    global task_condition
+    task_condition = Condition()
+    task_process = Process(target=wikiconnector.task_processor, args=(dbconfig, task_condition)).start()
     application.run(host='0.0.0.0', port=8000)
 
 if __name__ == '__main__':
