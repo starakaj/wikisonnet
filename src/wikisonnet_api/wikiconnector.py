@@ -14,12 +14,13 @@ def task_processor(dbconfig, condition):
         query = """SELECT * FROM poem_tasks WHERE complete=0 ORDER BY id LIMIT 1;"""
         cur.execute(query)
         res  = cur.fetchall()
+        dbconn.close()
         if not res:
             condition.wait()
+            condition.release()
         else:
+            condition.release()
             writePoemForTaskRow(dbconfig, res[0])
-        dbconn.close()
-        condition.release()
 
 def writePoemForTaskRow(dbconfig, task):
     page_id = task["page_id"]
@@ -40,11 +41,11 @@ def enqueuePoemTaskForPageID(dbconfig, pageID, poemID, task_condition, userdata)
         """ VALUES (%s, %s, %s, %s, %s)"""
     )
     values = (userdata.get("source"), userdata.get("session"), userdata.get("twitter"), pageID, poemID)
-
-    task_condition.acquire()
     cur.execute(query, values)
     cur.execute("""COMMIT;""")
     dbconn.close()
+
+    task_condition.acquire()
     task_condition.notify()
     task_condition.release()
 
@@ -284,6 +285,7 @@ def addPoemToSession(dbconfig, poem_id, session_id):
     return res[0][0]
 
 def getIncompleteTasks(dbconfig, offset, limit):
+    print "About to connect"
     conn = mysql.connector.connect(user=dbconfig['user'],
                                     password=dbconfig['password'],
                                     host=dbconfig['host'],
@@ -293,8 +295,11 @@ def getIncompleteTasks(dbconfig, offset, limit):
     if limit is 0:
         limit = 1000
     values = (offset, limit)
+    print "About to execute"
     cursor.execute(query, values)
+    print "About to fetch"
     res = cursor.fetchall()
+    print "About to close"
     conn.close()
 
     return res
