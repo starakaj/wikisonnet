@@ -282,3 +282,19 @@ def addPoemToSession(dbconfig, poem_id, session_id):
     conn.close()
 
     return res[0][0]
+
+def getIncompleteTasks(dbconfig, offset, limit):
+    conn = mysql.connector.connect(user=dbconfig['user'],
+                                    password=dbconfig['password'],
+                                    host=dbconfig['host'],
+                                    database=dbconfig['database'])
+    cursor = conn.cursor(dictionary=True)
+    query = """SELECT * FROM poem_tasks WHERE complete=0 LIMIT %s,%s;"""
+    if limit is 0:
+        limit = 1000
+    values = (offset, limit)
+    cursor.execute(query, values)
+    res = cursor.fetchall()
+    conn.close()
+
+    return res

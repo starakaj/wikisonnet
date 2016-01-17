@@ -99,7 +99,7 @@ def compose():
             return jsonify({"error":"You need sessions for this to work"})
     return jsonify(poem_dict)
 
-@application.route('/api/v2/poems/<poem_id>', methods=['GET'])
+@application.route('/api/v2/poems/<int:poem_id>', methods=['GET'])
 def lookup(poem_id):
     poem_dict = wikiconnector.getSpecificPoem(dbconfig, poem_id)
     if poem_dict['complete']:
@@ -107,6 +107,14 @@ def lookup(poem_id):
             wikiconnector.addPoemToSession(dbconfig, poem_dict['id'], session['id'])
         print_poem(poem_dict['starting_page'], poem_dict)
     return jsonify(poem_dict)
+
+@application.route("/api/v2/tasks", methods=['GET'])
+def tasks():
+    offset = request.args.get('offset', 0, type=int)
+    limit = request.args.get('limit', 0, type=int)
+    incomplete_tasks = wikiconnector.getIncompleteTasks(dbconfig, offset, limit)
+    print incomplete_tasks
+    return jsonify({"tasks":incomplete_tasks})
 
 def print_poem(page_id, poem_dict):
     if print_to_dotmatrix:
