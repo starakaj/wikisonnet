@@ -126,12 +126,11 @@ def get_poems():
     prewritten_poems = poems.getPoems(dbconfig, offset, limit)
     return jsonify({"poems":prewritten_poems})
 
-@application.route("/api/v2/laud", methods=["POST", "DELETE"])
-def put_laud():
+@application.route("/api/v2/poems/<int:poem_id>/lauds", methods=["POST", "DELETE"])
+def put_laud(poem_id):
     if not session.get('id'):
         session_id = sessions.createSession(dbconfig)
         session['id'] = session_id
-    poem_id = request.form.get("poem_id", None)
     if poem_id is not None:
         if request.method == "POST":
             status = lauds.putLaudForPoemAndSession(dbconfig, poem_id, session['id'])
