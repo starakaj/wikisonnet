@@ -119,8 +119,23 @@ def tasks():
 def get_poems():
     offset = request.args.get('offset', 0, type=int)
     limit = request.args.get('limit', 0, type=int)
-    incomplete_tasks = wikiconnector.getPoems(dbconfig, offset, limit)
-    return jsonify({"poems":incomplete_tasks})
+    prewritten_poems = wikiconnector.getPoems(dbconfig, offset, limit)
+    return jsonify({"poems":prewritten_poems})
+
+@application.route("/api/v2/laud", methods=["POST", "DELETE"])
+def put_laud():
+    if not session.get('id'):
+        session_id = wikiconnector.createSession(dbconfig)
+        session['id'] = session_id
+    poem_id = request.form.get("poem_id", None)
+    if poem_id is not None:
+        if request.method == "POST":
+            status = wikiconnector.putLaudForPoemAndSession(dbconfig, poem_id, session['id'])
+        elif request.method == "DELETE":
+            status = wikiconnector.deleteLaudForPoemAndSession(dbconfig, poem_id, session['id'])
+        return jsonify({"success":status, "poem_id":poem_id})
+    else:
+        return jsonify({"success":0})
 
 def print_poem(page_id, poem_dict):
     if print_to_dotmatrix:
