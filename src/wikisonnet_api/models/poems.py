@@ -41,6 +41,7 @@ def getCachedPoemForArticle(dbconfig, page_id=21, complete=True, session_id=0):
                 LEFT OUTER JOIN sessions_poems ON cached_poems.id = sessions_poems.poem_id
                 JOIN page_names ON page_names.page_id = cached_poems.page_id
                 LEFT JOIN lauds ON lauds.poem_id = cached_poems.id
+                LEFT OUTER JOIN lauds AS session_lauds ON lauds.poem_id = cached_poems.id AND lauds.session = %s
                 WHERE cached_poems.page_id=%s AND complete=%s AND (session_id!=%s OR session_id IS NULL)
                 GROUP BY lauds.poem_id, cached_poems.id, page_names.name, session_lauds.session
                 ORDER BY RAND() LIMIT 1;"""
