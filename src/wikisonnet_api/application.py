@@ -107,10 +107,12 @@ def lookup(poem_id):
         session['id'] = session_id
     print poem_id
     poem_dict = poems.getSpecificPoem(dbconfig, poem_id, session['id'])
-    if poem_dict['complete']:
+    if poem_dict is not None and poem_dict['complete']:
         if 'id' in session:
             sessions.addPoemToSession(dbconfig, poem_dict['id'], session['id'])
         print_poem(poem_dict['starting_page'], poem_dict)
+    else:
+        poem_dict = {}
     return jsonify(poem_dict)
 
 @application.route("/api/v2/tasks", methods=['GET'])
