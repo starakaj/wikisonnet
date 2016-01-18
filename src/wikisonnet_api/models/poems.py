@@ -66,7 +66,7 @@ def getSpecificPoem(dbconfig, poem_id=181, session_id=0):
                 WHERE cached_poems.id=%s
                 GROUP BY lauds.poem_id, cached_poems.id, page_names.name, session_lauds.session
                 LIMIT 1;"""
-    values = (poem_id, session_id)
+    values = (session_id, poem_id)
     cursor.execute(query, values)
     res = cursor.fetchall()
     retval = None;
