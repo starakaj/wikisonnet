@@ -9,7 +9,11 @@ def putLaudForPoemAndSession(dbconfig, poem_id, session):
     cursor = conn.cursor(dictionary=True)
     query = """INSERT IGNORE INTO lauds (session, poem_id) VALUES (%s, %s);"""
     values = (session, poem_id)
-    cursor.execute(query, values)
+    try:
+        cursor.execute(query, values)
+    except mysql.connector.IntegrityError as e:
+        conn.close()
+        return 0
     affected_rows = cursor.rowcount
     cursor.execute("""COMMIT;""")
     conn.close()
