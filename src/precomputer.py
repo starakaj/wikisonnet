@@ -48,7 +48,7 @@ def composeSlave(dbconfig, top_pages, remoteconfig):
     while True:
         random.shuffle(top_pages)
         for page_id in top_pages:
-            writeNewPoemForPage(dbconfig, remoteconfig, page_id)
+            writeNewPoemForArticle(dbconfig, remoteconfig, page_id)
 
 def writePoem(dbconfig, page_id, poem_id, remoteconfig):
     ## Write the poem
@@ -78,7 +78,7 @@ def writePoem(dbconfig, page_id, poem_id, remoteconfig):
     cursor.execute("""COMMIT;""")
     conn.close()
 
-def writeNewPoemForPage(dbconfig, remoteconfig, pageID=21):
+def writeNewPoemForArticle(dbconfig, remoteconfig, pageID=21):
     ## Create the row for the cached posStringForPoemLines
     write_conn = mysql.connector.connect(user=remoteconfig['user'],
                                         password=remoteconfig['password'],

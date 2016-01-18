@@ -21,7 +21,7 @@ from flask import request, Response, jsonify, session
 import wikiconnector
 from multiprocessing import Manager, Queue, cpu_count, Process, Condition
 from flask.ext.cors import CORS
-from models import lauds
+from models import articles, lauds, poems, sessions, tasks
 # from IPython import embed
 
 import dotmatrix
@@ -63,7 +63,7 @@ task_condition = None
 @application.route('/')
 def welcome():
     theme = application.config['THEME']
-    page_name = wikiconnector.getRandomPoemTitle(dbconfig)
+    page_name = articles.getRandomArticleTitle(dbconfig)
     return flask.render_template('index.html', theme=theme, page_name=page_name)
 
 # @application.route('/api/v2/pages/<page_id>/poems', methods=['GET', 'POST'])
@@ -75,37 +75,37 @@ def welcome():
 #     if poem_dict is None:
 #         poem_dict = wikiconnector.getCachedPoemForPage(dbconfig, page_id, complete=False)
 #     if poem_dict is None:
-#         poem_dict = wikiconnector.writeNewPoemForPage(dbconfig, page_id)
+#         poem_dict = wikiconnector.writeNewPoemForArticle(dbconfig, page_id)
 #     return jsonify(poem_dict)
 
 @application.route('/api/v2/poems', methods=['POST'])
 def compose():
     if not session.get('id'):
-        session_id = wikiconnector.createSession(dbconfig)
+        session_id = sessions.createSession(dbconfig)
         session['id'] = session_id
     title = request.form.get("poemTitle")
-    page_id = wikiconnector.getPageId(dbconfig, title)
-    poem_dict = wikiconnector.getCachedPoemForPage(dbconfig, page_id, True, session['id'])
+    page_id = articles.getArticleIdForTitle(dbconfig, title)
+    poem_dict = poems.getCachedPoemForArticle(dbconfig, page_id, True, session['id'])
     if poem_dict is not None:
         if 'id' in session:
-            wikiconnector.addPoemToSession(dbconfig, poem_dict['id'], session['id'])
+            sessions.addPoemToSession(dbconfig, poem_dict['id'], session['id'])
         print_poem(page_id, poem_dict)
     if poem_dict is None:
-        poem_dict = wikiconnector.getCachedPoemForPage(dbconfig, page_id, False)
+        poem_dict = poems.getCachedPoemForArticle(dbconfig, page_id, False)
     if poem_dict is None:
         if session.get('id'):
             userdata = {"source":"website", "session":session["id"]}
-            poem_dict = wikiconnector.writeNewPoemForPage(dbconfig, page_id, task_condition, userdata)
+            poem_dict = poems.writeNewPoemForArticle(dbconfig, page_id, task_condition, userdata)
         else:
             return jsonify({"error":"You need sessions for this to work"})
     return jsonify(poem_dict)
 
 @application.route('/api/v2/poems/<int:poem_id>', methods=['GET'])
 def lookup(poem_id):
-    poem_dict = wikiconnector.getSpecificPoem(dbconfig, poem_id)
+    poem_dict = poems.getSpecificPoem(dbconfig, poem_id)
     if poem_dict['complete']:
         if 'id' in session:
-            wikiconnector.addPoemToSession(dbconfig, poem_dict['id'], session['id'])
+            sessions.addPoemToSession(dbconfig, poem_dict['id'], session['id'])
         print_poem(poem_dict['starting_page'], poem_dict)
     return jsonify(poem_dict)
 
@@ -113,20 +113,20 @@ def lookup(poem_id):
 def tasks():
     offset = request.args.get('offset', 0, type=int)
     limit = request.args.get('limit', 0, type=int)
-    incomplete_tasks = wikiconnector.getIncompleteTasks(dbconfig, offset, limit)
+    incomplete_tasks = tasks.getIncompleteTasks(dbconfig, offset, limit)
     return jsonify({"tasks":incomplete_tasks})
 
 @application.route("/api/v2/poems", methods=['GET'])
 def get_poems():
     offset = request.args.get('offset', 0, type=int)
     limit = request.args.get('limit', 0, type=int)
-    prewritten_poems = wikiconnector.getPoems(dbconfig, offset, limit)
+    prewritten_poems = poems.getPoems(dbconfig, offset, limit)
     return jsonify({"poems":prewritten_poems})
 
 @application.route("/api/v2/laud", methods=["POST", "DELETE"])
 def put_laud():
     if not session.get('id'):
-        session_id = wikiconnector.createSession(dbconfig)
+        session_id = sessions.createSession(dbconfig)
         session['id'] = session_id
     poem_id = request.form.get("poem_id", None)
     if poem_id is not None:
@@ -140,7 +140,7 @@ def put_laud():
 
 def print_poem(page_id, poem_dict):
     if print_to_dotmatrix:
-        title = wikiconnector.getPageTitle(dbconfig, page_id)
+        title = articles.getArticleTitleForId(dbconfig, page_id)
         lines = [r["text"] for r in poem_dict["lines"]]
         dotmatrix.printPoem(title, lines)
 
