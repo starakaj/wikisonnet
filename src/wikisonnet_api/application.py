@@ -21,6 +21,7 @@ from flask import request, Response, jsonify, session
 import wikiconnector
 from multiprocessing import Manager, Queue, cpu_count, Process, Condition
 from flask.ext.cors import CORS
+from models import lauds
 # from IPython import embed
 
 import dotmatrix
@@ -130,9 +131,9 @@ def put_laud():
     poem_id = request.form.get("poem_id", None)
     if poem_id is not None:
         if request.method == "POST":
-            status = wikiconnector.putLaudForPoemAndSession(dbconfig, poem_id, session['id'])
+            status = lauds.putLaudForPoemAndSession(dbconfig, poem_id, session['id'])
         elif request.method == "DELETE":
-            status = wikiconnector.deleteLaudForPoemAndSession(dbconfig, poem_id, session['id'])
+            status = lauds.deleteLaudForPoemAndSession(dbconfig, poem_id, session['id'])
         return jsonify({"success":status, "poem_id":poem_id})
     else:
         return jsonify({"success":0})

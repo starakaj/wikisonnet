@@ -1,5 +1,4 @@
 import mysql.connector
-from flask import jsonify
 import wikibard.wikibard as wikibard
 import db.dbconnect as dbconnect
 from multiprocessing import Process
@@ -316,30 +315,3 @@ def getPoems(dbconfig, offset, limit):
     poems = [dictFromPoemRow(cursor, row) for row in res]
     conn.close()
     return poems
-
-def putLaudForPoemAndSession(dbconfig, poem_id, session):
-    conn = mysql.connector.connect(user=dbconfig['user'],
-                                    password=dbconfig['password'],
-                                    host=dbconfig['host'],
-                                    database=dbconfig['database'])
-    cursor = conn.cursor(dictionary=True)
-    query = """INSERT IGNORE INTO lauds (session, poem_id) VALUES (%s, %s);"""
-    values = (session, poem_id)
-    cursor.execute(query, values)
-    cursor.execute("""COMMIT;""")
-    conn.close()
-    return 1
-
-def deleteLaudForPoemAndSession(dbconfig, poem_id, session):
-    conn = mysql.connector.connect(user=dbconfig['user'],
-                                    password=dbconfig['password'],
-                                    host=dbconfig['host'],
-                                    database=dbconfig['database'])
-    cursor = conn.cursor(dictionary=True)
-    query = """DELETE FROM lauds WHERE session=%s AND poem_id=%s;"""
-    values = (session, poem_id)
-    cursor.execute(query, values)
-    print cursor.rowcount
-    cursor.execute("""COMMIT;""")
-    conn.close()
-    return 1
