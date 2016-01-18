@@ -113,8 +113,14 @@ def tasks():
     offset = request.args.get('offset', 0, type=int)
     limit = request.args.get('limit', 0, type=int)
     incomplete_tasks = wikiconnector.getIncompleteTasks(dbconfig, offset, limit)
-    print incomplete_tasks
     return jsonify({"tasks":incomplete_tasks})
+
+@application.route("/api/v2/poems", methods=['GET'])
+def get_poems():
+    offset = request.args.get('offset', 0, type=int)
+    limit = request.args.get('limit', 0, type=int)
+    incomplete_tasks = wikiconnector.getPoems(dbconfig, offset, limit)
+    return jsonify({"poems":incomplete_tasks})
 
 def print_poem(page_id, poem_dict):
     if print_to_dotmatrix:

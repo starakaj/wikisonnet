@@ -285,7 +285,6 @@ def addPoemToSession(dbconfig, poem_id, session_id):
     return res[0][0]
 
 def getIncompleteTasks(dbconfig, offset, limit):
-    print "About to connect"
     conn = mysql.connector.connect(user=dbconfig['user'],
                                     password=dbconfig['password'],
                                     host=dbconfig['host'],
@@ -295,11 +294,26 @@ def getIncompleteTasks(dbconfig, offset, limit):
     if limit is 0:
         limit = 1000
     values = (offset, limit)
-    print "About to execute"
     cursor.execute(query, values)
-    print "About to fetch"
     res = cursor.fetchall()
-    print "About to close"
     conn.close()
-
     return res
+
+def getPoems(dbconfig, offset, limit):
+    conn = mysql.connector.connect(user=dbconfig['user'],
+                                    password=dbconfig['password'],
+                                    host=dbconfig['host'],
+                                    database=dbconfig['database'])
+    cursor = conn.cursor(dictionary=True)
+    query = """SELECT * FROM cached_poems WHERE complete=1 ORDER BY id DESC LIMIT %s,%s;"""
+    query = """SELECT cached_poems.*, page_names.name FROM cached_poems
+                JOIN page_names on page_names.page_id = cached_poems.page_id
+                WHERE complete=1 ORDER BY id DESC LIMIT %s,%s;"""
+    if limit is 0:
+        limit = 1000
+    values = (offset, limit)
+    cursor.execute(query, values)
+    res = cursor.fetchall()
+    poems = [dictFromPoemRow(cursor, row) for row in res]
+    conn.close()
+    return poems
