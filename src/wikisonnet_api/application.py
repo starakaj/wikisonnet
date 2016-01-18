@@ -139,7 +139,8 @@ def put_laud(poem_id):
             status = lauds.putLaudForPoemAndSession(dbconfig, poem_id, session['id'])
         elif request.method == "DELETE":
             status = lauds.deleteLaudForPoemAndSession(dbconfig, poem_id, session['id'])
-        return jsonify({"success":status, "poem_id":poem_id})
+        (laud_count, session_laud_count) = lauds.laudCountForPoem(dbconfig, poem_id, session['id'])
+        return jsonify({"success":status, "lauds":laud_count, "lauded_by_session":session_laud_count, "poem_id":poem_id})
     else:
         return jsonify({"success":0})
 

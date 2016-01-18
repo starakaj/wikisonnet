@@ -32,3 +32,22 @@ def deleteLaudForPoemAndSession(dbconfig, poem_id, session):
     cursor.execute("""COMMIT;""")
     conn.close()
     return 1 if affected_rows > 0 else 0
+
+def laudCountForPoem(dbconfig, poem_id, session):
+    conn = mysql.connector.connect(user=dbconfig['user'],
+                                    password=dbconfig['password'],
+                                    host=dbconfig['host'],
+                                    database=dbconfig['database'])
+    cursor = conn.cursor(dictionary=True)
+    query = """SELECT COUNT(*) FROM lauds WHERE poem_id=%s;"""
+    values = (poem_id, )
+    cursor.execute(query, values)
+    res = cursor.fetchall()
+    laud_count = res[0]['COUNT(*)']
+    query = """SELECT COUNT(*) FROM lauds WHERE poem_id=%s AND session=%s;"""
+    values = (poem_id, session)
+    cursor.execute(query, values)
+    res = cursor.fetchall()
+    session_laud_count = res[0]['COUNT(*)']
+    conn.close()
+    return (laud_count, session_laud_count)
