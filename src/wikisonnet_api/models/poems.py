@@ -9,6 +9,7 @@ def dictFromPoemRow(cursor, poem_row_dict):
     d['id'] = poem_row_dict['id']
     d['title'] = poem_row_dict['name'].decode('utf-8').replace("_", " ")
     d['lauds'] = poem_row_dict['COUNT(lauds.poem_id)']
+    d['lauded_by_session'] = poem_row_dict['session']
 
     ## Get the text for the line ID's
     line_count = len(filter(lambda x:x.startswith('line_'), poem_row_dict.keys()))
@@ -36,14 +37,14 @@ def getCachedPoemForArticle(dbconfig, page_id=21, complete=True, session_id=0):
                                     host=dbconfig['host'],
                                     database=dbconfig['database'])
     cursor = conn.cursor(dictionary=True)
-    query = """SELECT cached_poems.*, page_names.name, COUNT(lauds.poem_id) FROM cached_poems
+    query = """SELECT cached_poems.*, page_names.name, COUNT(lauds.poem_id), session_lauds.session FROM cached_poems
                 LEFT OUTER JOIN sessions_poems ON cached_poems.id = sessions_poems.poem_id
                 JOIN page_names ON page_names.page_id = cached_poems.page_id
                 LEFT JOIN lauds ON lauds.poem_id = cached_poems.id
                 WHERE cached_poems.page_id=%s AND complete=%s AND (session_id!=%s OR session_id IS NULL)
-                GROUP BY lauds.poem_id, cached_poems.id, page_names.name
+                GROUP BY lauds.poem_id, cached_poems.id, page_names.name, session_lauds.session
                 ORDER BY RAND() LIMIT 1;"""
-    values = (page_id, complete, session_id)
+    values = (session_id, page_id, complete, session_id)
     cursor.execute(query, values)
     res = cursor.fetchall()
     retval = None;
@@ -52,19 +53,20 @@ def getCachedPoemForArticle(dbconfig, page_id=21, complete=True, session_id=0):
     conn.close()
     return retval
 
-def getSpecificPoem(dbconfig, poem_id=181):
+def getSpecificPoem(dbconfig, poem_id=181, session_id=0):
     conn = mysql.connector.connect(user=dbconfig['user'],
                                     password=dbconfig['password'],
                                     host=dbconfig['host'],
                                     database=dbconfig['database'])
     cursor = conn.cursor(dictionary=True)
-    query = """SELECT cached_poems.*, page_names.name, COUNT(lauds.poem_id) FROM cached_poems
+    query = """SELECT cached_poems.*, page_names.name, COUNT(lauds.poem_id), session_lauds.session FROM cached_poems
                 JOIN page_names on page_names.page_id = cached_poems.page_id
                 LEFT JOIN lauds ON lauds.poem_id = cached_poems.id
+                LEFT OUTER JOIN lauds AS session_lauds ON lauds.poem_id = cached_poems.id AND lauds.session = %s
                 WHERE cached_poems.id=%s
-                GROUP BY lauds.poem_id, cached_poems.id, page_names.name
+                GROUP BY lauds.poem_id, cached_poems.id, page_names.name, session_lauds.session
                 LIMIT 1;"""
-    values = (poem_id,)
+    values = (poem_id, session_id)
     cursor.execute(query, values)
     res = cursor.fetchall()
     retval = None;
@@ -101,21 +103,22 @@ def writeNewPoemForArticle(dbconfig, pageID, task_condition, userdata):
 
     return d
 
-def getPoems(dbconfig, offset, limit, options={}):
+def getPoems(dbconfig, offset, limit, session_id=0):
     conn = mysql.connector.connect(user=dbconfig['user'],
                                     password=dbconfig['password'],
                                     host=dbconfig['host'],
                                     database=dbconfig['database'])
     cursor = conn.cursor(dictionary=True)
-    query = """SELECT cached_poems.*, page_names.name, COUNT(lauds.poem_id) FROM cached_poems
+    query = """SELECT cached_poems.*, page_names.name, COUNT(lauds.poem_id), session_lauds.session FROM cached_poems
                 JOIN page_names on page_names.page_id = cached_poems.page_id
                 LEFT JOIN lauds ON lauds.poem_id = cached_poems.id
+                LEFT OUTER JOIN lauds AS session_lauds ON lauds.poem_id = cached_poems.id AND lauds.session = %s
                 WHERE complete=1
-                GROUP BY lauds.poem_id, cached_poems.id, page_names.name
+                GROUP BY lauds.poem_id, cached_poems.id, page_names.name, session_lauds.session
                 ORDER BY id DESC LIMIT %s,%s;"""
     if limit is 0:
         limit = 1000
-    values = (offset, limit)
+    values = (session_id, offset, limit)
     cursor.execute(query, values)
     res = cursor.fetchall()
     poems = [dictFromPoemRow(cursor, row) for row in res]

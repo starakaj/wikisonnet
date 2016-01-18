@@ -91,7 +91,7 @@ def compose():
             sessions.addPoemToSession(dbconfig, poem_dict['id'], session['id'])
         print_poem(page_id, poem_dict)
     if poem_dict is None:
-        poem_dict = poems.getCachedPoemForArticle(dbconfig, page_id, False)
+        poem_dict = poems.getCachedPoemForArticle(dbconfig, page_id, False, session['id'])
     if poem_dict is None:
         if session.get('id'):
             userdata = {"source":"website", "session":session["id"]}
@@ -103,9 +103,9 @@ def compose():
 @application.route('/api/v2/poems/<int:poem_id>', methods=['GET'])
 def lookup(poem_id):
     if not session.get('id'):
-        session_id = wikiconnector.createSession(dbconfig)
+        session_id = sessions.createSession(dbconfig)
         session['id'] = session_id
-    poem_dict = wikiconnector.getSpecificPoem(dbconfig, poem_id)
+    poem_dict = poems.getSpecificPoem(dbconfig, poem_id, session['id'])
     if poem_dict['complete']:
         if 'id' in session:
             sessions.addPoemToSession(dbconfig, poem_dict['id'], session['id'])
@@ -123,7 +123,7 @@ def tasks():
 def get_poems():
     offset = request.args.get('offset', 0, type=int)
     limit = request.args.get('limit', 0, type=int)
-    prewritten_poems = poems.getPoems(dbconfig, offset, limit)
+    prewritten_poems = poems.getPoems(dbconfig, offset, limit, session.get('id', 0))
     return jsonify({"poems":prewritten_poems})
 
 @application.route("/api/v2/poems/<int:poem_id>/lauds", methods=["POST", "DELETE"])
