@@ -17,4 +17,5 @@ chi-app
 *.sql
 *.zip
 dump
+newrelic.ini
 output
