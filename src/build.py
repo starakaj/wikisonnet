@@ -5,7 +5,9 @@ from tqdm import tqdm
 import requests
 import shutil
 
-sys.path.append(".")
+
+srcdir = "/".join(os.path.realpath(__file__).split("/")[:-1]) + "/"
+sys.path.append(srcdir)
 
 def rmdir_nonempty(dirname):
     for root, dirs, files in os.walk(dirname, topdown=False):
@@ -33,15 +35,15 @@ def download_wikidump():
 
 @task()
 def start_server():
-    destdir = "wikisonnet_api/bard/"
+    destdir = srcdir + "wikisonnet_api/bard/"
 
     # Copy the poem writing files
     rmdir_nonempty(destdir)
     os.mkdir(destdir)
     open(destdir + "__init__.py", 'a').close()
-    shutil.copytree("db", destdir + "db")
-    shutil.copytree("util", destdir + "util")
-    shutil.copytree("wikibard", destdir + "wikibard")
+    shutil.copytree(srcdir + "db", destdir + "db")
+    shutil.copytree(srcdir + "util", destdir + "util")
+    shutil.copytree(srcdir + "wikibard", destdir + "wikibard")
 
     # Run the server
     from wikisonnet_api import application
