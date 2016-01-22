@@ -5,10 +5,11 @@ import tasks
 def dictFromPoemRow(cursor, poem_row_dict):
     d = {}
     d['complete'] = poem_row_dict['complete']
+    d['created_on'] = poem_row_dict['created_on']
     d['starting_page'] = poem_row_dict['page_id']
     d['id'] = poem_row_dict['id']
     d['title'] = poem_row_dict['name'].decode('utf-8').replace("_", " ")
-    d['lauds'] = poem_row_dict['COUNT(lauds.poem_id)']
+    d['lauds'] = poem_row_dict['laud_count']
     d['lauded_by_session'] = poem_row_dict['session']
 
     ## Get the text for the line ID's
@@ -37,7 +38,7 @@ def getCachedPoemForArticle(dbconfig, page_id=21, complete=True, session_id=0):
                                     host=dbconfig['host'],
                                     database=dbconfig['database'])
     cursor = conn.cursor(dictionary=True)
-    query = """SELECT cached_poems.*, page_names.name, COUNT(lauds.poem_id), session_lauds.session FROM cached_poems
+    query = """SELECT cached_poems.*, page_names.name, COUNT(lauds.poem_id) as laud_count, session_lauds.session FROM cached_poems
                 LEFT OUTER JOIN sessions_poems ON cached_poems.id = sessions_poems.poem_id
                 JOIN page_names ON page_names.page_id = cached_poems.page_id
                 LEFT JOIN lauds ON lauds.poem_id = cached_poems.id
@@ -60,7 +61,7 @@ def getSpecificPoem(dbconfig, poem_id=181, session_id=0):
                                     host=dbconfig['host'],
                                     database=dbconfig['database'])
     cursor = conn.cursor(dictionary=True)
-    query = """SELECT cached_poems.*, page_names.name, COUNT(lauds.poem_id), session_lauds.session FROM cached_poems
+    query = """SELECT cached_poems.*, page_names.name, COUNT(lauds.poem_id) as laud_count, session_lauds.session FROM cached_poems
                 JOIN page_names on page_names.page_id = cached_poems.page_id
                 LEFT JOIN lauds ON lauds.poem_id = cached_poems.id
                 LEFT OUTER JOIN lauds AS session_lauds ON lauds.poem_id = cached_poems.id AND lauds.session = %s
@@ -104,22 +105,36 @@ def writeNewPoemForArticle(dbconfig, pageID, task_condition, userdata):
 
     return d
 
-def getPoems(dbconfig, offset, limit, session_id=0):
+def getPoems(dbconfig, offset, limit, session_id=0, options={}):
     conn = mysql.connector.connect(user=dbconfig['user'],
                                     password=dbconfig['password'],
                                     host=dbconfig['host'],
                                     database=dbconfig['database'])
     cursor = conn.cursor(dictionary=True)
-    query = """SELECT cached_poems.*, page_names.name, COUNT(lauds.poem_id), session_lauds.session FROM cached_poems
+    query = """SELECT cached_poems.*, page_names.name, COUNT(lauds.poem_id) as laud_count, session_lauds.session FROM cached_poems
                 JOIN page_names on page_names.page_id = cached_poems.page_id
                 LEFT JOIN lauds ON lauds.poem_id = cached_poems.id
                 LEFT OUTER JOIN lauds AS session_lauds ON lauds.poem_id = cached_poems.id AND lauds.session = %s
-                WHERE complete=1
-                GROUP BY lauds.poem_id, cached_poems.id, page_names.name, session_lauds.session
-                ORDER BY id DESC LIMIT %s,%s;"""
+                WHERE complete=1"""
+    values = (session_id, )
+    if "after" in options:
+        query = query + """ AND created_on >= %s"""
+        values = values + (options['after'], )
+    if "before" in options:
+        query = query + """ AND created_on <= %s"""
+        values = values + (options['before'], )
+    query = query + """ GROUP BY lauds.poem_id, cached_poems.id, page_names.name, session_lauds.session"""
+    if "sortby" in options and (options['sortby'] == 'lauds' or options['sortby'] == 'date'):
+        if options['sortby'] == 'lauds':
+            query = query + """ ORDER BY laud_count DESC LIMIT %s,%s;"""
+        elif options['sortby'] == 'date':
+            query = query + """ ORDER BY created_on DESC LIMIT %s,%s;"""
+    else:
+        query = query + """ ORDER BY id DESC LIMIT %s,%s;"""
     if limit is 0:
         limit = 1000
-    values = (session_id, offset, limit)
+    print query
+    values = values + (offset, limit)
     cursor.execute(query, values)
     res = cursor.fetchall()
     poems = [dictFromPoemRow(cursor, row) for row in res]

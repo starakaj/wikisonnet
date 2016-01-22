@@ -15,6 +15,7 @@
 import os
 import sys
 import json
+from datetime import datetime
 
 import flask
 from flask import request, Response, jsonify, session
@@ -126,7 +127,17 @@ def tasks():
 def get_poems():
     offset = request.args.get('offset', 0, type=int)
     limit = request.args.get('limit', 0, type=int)
-    prewritten_poems = poems.getPoems(dbconfig, offset, limit, session.get('id', 0))
+    sortby  = request.args.get('sortby', None, type=str)
+    before = request.args.get('before', None, type=str)
+    after = request.args.get('after', None, type=str)
+    options = {}
+    if sortby:
+        options['sortby'] = sortby
+    if after:
+        options['after'] = after
+    if before:
+        options['before'] = before
+    prewritten_poems = poems.getPoems(dbconfig, offset, limit, session.get('id', 0), options)
     return jsonify({"poems":prewritten_poems})
 
 @application.route("/api/v2/poems/<int:poem_id>/lauds", methods=["POST", "DELETE"])
