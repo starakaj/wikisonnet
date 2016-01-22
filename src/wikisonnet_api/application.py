@@ -111,7 +111,7 @@ def lookup(poem_id):
         if 'id' in session:
             sessions.addPoemToSession(dbconfig, poem_dict['id'], session['id'])
         print_poem(poem_dict['starting_page'], poem_dict)
-    else:
+    elif poem_dict is None:
         poem_dict = {}
     return jsonify(poem_dict)
 
