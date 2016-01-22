@@ -2,6 +2,9 @@ import mysql.connector
 import db.dbconnect as dbconnect
 import tasks
 
+sort_fields = ["lauds", "date"]
+fields_columns = {"lauds":"laud_count", "date":"created_on"}
+
 def dictFromPoemRow(cursor, poem_row_dict):
     d = {}
     d['complete'] = poem_row_dict['complete']
@@ -124,16 +127,12 @@ def getPoems(dbconfig, offset, limit, session_id=0, options={}):
         query = query + """ AND created_on <= %s"""
         values = values + (options['before'], )
     query = query + """ GROUP BY lauds.poem_id, cached_poems.id, page_names.name, session_lauds.session"""
-    if "sortby" in options and (options['sortby'] == 'lauds' or options['sortby'] == 'date'):
-        if options['sortby'] == 'lauds':
-            query = query + """ ORDER BY laud_count DESC LIMIT %s,%s;"""
-        elif options['sortby'] == 'date':
-            query = query + """ ORDER BY created_on DESC LIMIT %s,%s;"""
+    if "sortby" in options and options['sortby'] in sort_fields:
+        query = query + """ ORDER BY {} DESC LIMIT %s,%s;""".format(fields_columns[options['sortby']])
     else:
         query = query + """ ORDER BY id DESC LIMIT %s,%s;"""
     if limit is 0:
         limit = 1000
-    print query
     values = values + (offset, limit)
     cursor.execute(query, values)
     res = cursor.fetchall()
