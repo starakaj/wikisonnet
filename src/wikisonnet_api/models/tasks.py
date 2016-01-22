@@ -32,6 +32,32 @@ def getIncompleteTasks(dbconfig, offset=0, limit=0):
     conn.close()
     return res
 
+def getTaskCountForSession(dbconfig, session, after):
+    conn = mysql.connector.connect(user=dbconfig['user'],
+                                    password=dbconfig['password'],
+                                    host=dbconfig['host'],
+                                    database=dbconfig['database'])
+    cursor = conn.cursor()
+    query = """SELECT COUNT(*) FROM poem_tasks WHERE session=%s AND created_at>%s"""
+    values = (session, after)
+    cursor.execute(query, values)
+    res = cursor.fetchall()
+    conn.close()
+    return res[0][0]
+
+def getTaskCountForTwitterHandle(dbconfig, twitter_handle, after):
+    conn = mysql.connector.connect(user=dbconfig['user'],
+                                    password=dbconfig['password'],
+                                    host=dbconfig['host'],
+                                    database=dbconfig['database'])
+    cursor = conn.cursor()
+    query = """SELECT COUNT(*) FROM poem_tasks WHERE twitter_handle=%s AND created_at>%s"""
+    values = (twitter_handle, after)
+    cursor.execute(query, values)
+    res = cursor.fetchall()
+    conn.close()
+    return res[0][0]
+
 def markTaskCompleted(dbconfig, task):
     dbconn = dbconnect.MySQLDatabaseConnection(dbconfig['database'], dbconfig['user'], dbconfig['host'], dbconfig['password'])
     cur = dbconn.connection.cursor(dictionary=True)

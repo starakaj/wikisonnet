@@ -15,7 +15,7 @@
 import os
 import sys
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import flask
 from flask import request, Response, jsonify, session
@@ -48,6 +48,7 @@ application.config.from_pyfile('application.config', silent=True)
 HOST_IP = 'localhost'if application.config.get('HOST_IP') is None else application.config.get('HOST_IP')
 DB_CONFIG = 'local'if application.config.get('DB_CONFIG') is None else application.config.get('DB_CONFIG')
 PROCESS_COUNT = 1 if application.config.get('PROCESS_COUNT') is None else application.config.get('PROCESS_COUNT')
+RATE_LIMIT = 40 if application.config.get('RATE_LIMIT') is None else application.config.get('RATE_LIMIT')
 dbconfig = wikiconnector.dbconfigForName(DB_CONFIG)
 
 # Only enable Flask debugging if an env var is set to true
@@ -103,11 +104,15 @@ def compose():
         userdata = {}
         if twitterHandle is not None:
             userdata = {"source":"twitter", "session":session["id"], "twitter_handle":twitterHandle}
+            task_count = tasks.getTaskCountForTwitterHandle(dbconfig, twitterHandle, datetime.now()-timedelta(hours=1))
         elif session.get('id'):
             userdata = {"source":"website", "session":session["id"]}
-        poem_dict = poems.writeNewPoemForArticle(dbconfig, page_id, task_condition, userdata)
+            task_count = tasks.getTaskCountForSession(dbconfig, session['id'], datetime.now()-timedelta(hours=1))
         if not userdata:
-            raise InvalidAPIUseage("Sessions inactive", "The Wikisonnet API requires that sessions be active to work")
+            raise InvalidAPIUsage("Sessions inactive", "The Wikisonnet API requires that sessions be active to work")
+        if task_count >= RATE_LIMIT:
+            raise InvalidAPIUsage("Rate limit exceeded", "Because Wikisonnet is run by struggling artists, we can only support {} poems per user per hour".format(RATE_LIMIT))
+        poem_dict = poems.writeNewPoemForArticle(dbconfig, page_id, task_condition, userdata)
     return jsonify(poem_dict)
 
 @application.route('/api/v2/poems/<int:poem_id>', methods=['GET'])
@@ -125,7 +130,7 @@ def lookup(poem_id):
     return jsonify(poem_dict)
 
 @application.route("/api/v2/tasks", methods=['GET'])
-def tasks():
+def getTasks():
     offset = request.args.get('offset', 0, type=int)
     limit = request.args.get('limit', 0, type=int)
     incomplete_tasks = tasks.getIncompleteTasks(dbconfig, offset, limit)
