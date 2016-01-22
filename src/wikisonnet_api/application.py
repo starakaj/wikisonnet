@@ -111,7 +111,7 @@ def compose():
         if not userdata:
             raise InvalidAPIUsage("Sessions inactive", "The Wikisonnet API requires that sessions be active to work")
         if task_count >= RATE_LIMIT:
-            raise InvalidAPIUsage("Rate limit exceeded", "Because Wikisonnet is run by struggling artists, we can only support {} poems per user per hour".format(RATE_LIMIT))
+            raise InvalidAPIUsage("Rate limit exceeded", "Because Wikisonnet is run by struggling artists, we can only support {} poems per user per hour".format(RATE_LIMIT), status_code=429)
         poem_dict = poems.writeNewPoemForArticle(dbconfig, page_id, task_condition, userdata)
     return jsonify(poem_dict)
 
