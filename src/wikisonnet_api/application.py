@@ -20,6 +20,7 @@ from datetime import datetime
 import flask
 from flask import request, Response, jsonify, session
 import wikiconnector
+from wikierrors import InvalidAPIUsage
 from multiprocessing import Manager, Queue, cpu_count, Process, Condition
 from flask.ext.cors import CORS
 from models import articles, lauds, poems, sessions, tasks
@@ -84,7 +85,9 @@ def compose():
     if not session.get('id'):
         session_id = sessions.createSession(dbconfig)
         session['id'] = session_id
-    title = request.form.get("poemTitle")
+    title = request.form.get("poemTitle", None)
+    if title is None:
+        raise InvalidAPIUsage("No article title", "You must provide a Wikipedia article title to get a poem")
     page_id = articles.getArticleIdForTitle(dbconfig, title)
     poem_dict = poems.getCachedPoemForArticle(dbconfig, page_id, True, session['id'])
     if poem_dict is not None:
@@ -154,6 +157,12 @@ def put_laud(poem_id):
         return jsonify({"success":status, "lauds":laud_count, "lauded_by_session":session_laud_count, "poem_id":poem_id})
     else:
         return jsonify({"success":0})
+
+@application.errorhandler(InvalidAPIUsage)
+def handle_invalid_usage(err):
+    response = jsonify(err.to_dict())
+    response.status_code = err.status_code
+    return response
 
 def print_poem(page_id, poem_dict):
     if print_to_dotmatrix:
