@@ -24,13 +24,24 @@ class ScanContext:
 def findIambsForPages(ptext, pageID):
     iambic_runs = []
     paragraphs = ptext.split("\n")
+
+    t = Timer()
+
     for paragraph in paragraphs:
+        t.begin("makeblob")
         blob = textblob.TextBlob(paragraph)
+        t.end("makeblob")
+        t.begin("find iambs")
         for sen in blob.sentences:
 
             ## Get the runs for each sentence
             ## Each sentence is just a raw, nasty string of the code-stripped sentence
             iambic_runs = iambic_runs + wordutils.extract_iambic_pentameter(sen.string)
+
+        t.end("find iambs")
+
+    # t.printTime()
+
     return iambic_runs
 
 def scan(extractor_filename, methods=[], startIdx=0, skipevery=1, offset=0):
@@ -40,6 +51,7 @@ def scan(extractor_filename, methods=[], startIdx=0, skipevery=1, offset=0):
     extractor = wikiutils.WikiTextExtractor(extractor_filename)
     commit_idx=0
     commit_ceil=1000
+    commit_timer = Timer()
     ignore_namespaces = 'Wikipedia Category File Portal Template MediaWiki User Help Book Draft'.split()
     thisdir = "/".join(os.path.realpath(__file__).split("/")[:-1]) + "/"
     id2word = gensim.corpora.Dictionary.load_from_text(thisdir + 'lda/results_wordids.txt.bz2')
@@ -65,6 +77,8 @@ def scan(extractor_filename, methods=[], startIdx=0, skipevery=1, offset=0):
         if commit_idx >= commit_ceil:
             commit_idx=0
             dbconn.connection.commit()
+            commit_timer.printTime()
+            commit_timer = Timer()
             if offset==0:
                 print "\tScanning page %d: %s" % (page_idx, extractor.titleForCurrentPage())
     dbconn.connection.commit()
@@ -73,6 +87,7 @@ def scan(extractor_filename, methods=[], startIdx=0, skipevery=1, offset=0):
 def scanIambic(ctx):
     extractor = ctx.extractor
     dbconn = ctx.dbconn
+    t = Timer()
 
     ## Skip if redirect
     redirect = extractor.redirectTitleForCurrentPage()
@@ -85,6 +100,7 @@ def scanIambic(ctx):
         print "Error parsing text"
         return
     pageID = extractor.pageIDForCurrentPage()
+    revID = extractor.revisionForCurrentPage()
     iambic_runs = findIambsForPages(ptext, pageID)
     for run in iambic_runs:
         words = run.text.split()
@@ -92,9 +108,12 @@ def scanIambic(ctx):
             rhyme_part = wordutils.rhyming_part(wordutils.make_safe(words[-1]))
             rhyme_part = "".join(rhyme_part)
             try:
-                dbwriter.storePoemLine(dbconn, pageID, wordutils.make_safe(words[-1]), run.text, run.pos, rhyme_part, run.options)
-            except:
+                dbwriter.storePoemLine(dbconn, pageID, wordutils.make_safe(words[-1]), run.text, run.pos, rhyme_part, revID, run.options)
+            except Exception as e:
+                print e
                 print "store line error"
+    # if iambic_runs:
+    #     t.printTime()
 
 def countPages(extractor, limit=-1):
     page_idx = 0
@@ -210,4 +229,4 @@ def prepareInputsForTopicModelling(extractor, ofile):
         if page_idx > 1000:
             break
 
-functionDict = {'names':scanNames, 'links':scanLinks, 'redirects':scanRedirects, 'categories':scanCategories, 'revisions':scanRevisions}
+functionDict = {'iambs':scanIambic, 'names':scanNames, 'links':scanLinks, 'redirects':scanRedirects, 'categories':scanCategories, 'revisions':scanRevisions}

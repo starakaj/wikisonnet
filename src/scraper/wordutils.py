@@ -15,6 +15,8 @@ banned_end_words = ['the', 'a', 'an', 'at', 'been', 'in', 'of', 'to', 'by', 'my'
 					'for', 'so', 'which', 'their', 'on', 'your', 'as', 'has',
 					'what', 'is', 'nor', 'i', 'this', 'that']
 
+pos_map = {'NNP':'NN', 'NNPS':'NNS', 'NNP-LOC':'NN', 'NNPS-LOC':'NNS'}
+
 ## blocks = re.split('\n+', testtext)
 
 def sylcount(s):
@@ -377,6 +379,7 @@ def extract_iambic_pentameter(sentence):
 							pos = filter(lambda x: re.match('^[\w-]+', x[1]) is not None, pos)
 							chnk = [x[2] for x in pos]
 							pos = [x[1] for x in pos]
+							pos = [p if p not in pos_map else pos_map[p] for p in pos]
 							has_parsed_sentence = True
 							if (len(words) != len(pos)):
 								# print("Skipping sentence ''" + sentence + "''")
@@ -418,7 +421,8 @@ def extract_iambic_pentameter(sentence):
 		else:
 			run_start_index = run_end_index
 
-	# t.printTime()
+	# if iambic_runs:
+	# 	t.printTime()
 
 	return iambic_runs
 

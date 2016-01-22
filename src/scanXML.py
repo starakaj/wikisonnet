@@ -23,6 +23,8 @@ parser.add_argument('--offset', action='store', type=int, default=0, help="Use w
 
 args = parser.parse_args()
 methods = []
+if args.iambic:
+    methods.append('iambs')
 if args.names:
     methods.append('names')
 if args.redirect:

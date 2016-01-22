@@ -62,7 +62,7 @@ def storeRevisionForPage(dbconn, pageID, revision, doCommit=True):
     cursor.close()
 
 ## store one iambic line in the database
-def storePoemLine(dbconn, pageID, word, text, pos, rhyme, options=None):
+def storePoemLine(dbconn, pageID, word, text, pos, rhyme, revision, options=None):
     cursor = dbconn.connection.cursor()
 
     ## First check if the particular line-page compination already exists
@@ -82,5 +82,13 @@ def storePoemLine(dbconn, pageID, word, text, pos, rhyme, options=None):
                 query = query + """, %s"""
         query = query + """)"""
         cursor.execute(query, tuple(valueList))
-        dbconn.connection.commit()
+
+        if revision is not None:
+            query = """SELECT LAST_INSERT_ID();"""
+            cursor.execute(query)
+            res = cursor.fetchall()
+            line_id = res[0][0]
+            query = """INSERT INTO lines_revisions (line_id, revision) VALUES (%s,%s);"""
+            values = (line_id, revision)
+            cursor.execute(query, values)
     cursor.close()
