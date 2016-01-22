@@ -8,7 +8,7 @@ def enqueuePoemTaskForPageID(dbconfig, pageID, poemID, task_condition, userdata)
         """INSERT INTO poem_tasks (source, session, twitter_handle, page_id, poem_id)"""
         """ VALUES (%s, %s, %s, %s, %s)"""
     )
-    values = (userdata.get("source"), userdata.get("session"), userdata.get("twitter"), pageID, poemID)
+    values = (userdata.get("source"), userdata.get("session"), userdata.get("twitter_handle"), pageID, poemID)
     cur.execute(query, values)
     cur.execute("""COMMIT;""")
     dbconn.close()

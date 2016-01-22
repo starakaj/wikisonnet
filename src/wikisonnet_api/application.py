@@ -88,6 +88,7 @@ def compose():
     title = request.form.get("poemTitle", None, type=str)
     if title is None:
         raise InvalidAPIUsage("No article title provided", "You must provide a Wikipedia article title to get a poem")
+    twitterHandle = request.form.get("twitterHandle", None, type=str)
     page_id = articles.getArticleIdForTitle(dbconfig, title)
     if page_id is None:
         raise InvalidAPIUsage("Article not found", "Could not find a Wikipedia article with title {}".format(title))
@@ -99,11 +100,14 @@ def compose():
     if poem_dict is None:
         poem_dict = poems.getCachedPoemForArticle(dbconfig, page_id, False, session['id'])
     if poem_dict is None:
-        if session.get('id'):
+        userdata = {}
+        if twitterHandle is not None:
+            userdata = {"source":"twitter", "session":session["id"], "twitter_handle":twitterHandle}
+        elif session.get('id'):
             userdata = {"source":"website", "session":session["id"]}
-            poem_dict = poems.writeNewPoemForArticle(dbconfig, page_id, task_condition, userdata)
-        else:
-            return jsonify({"error":"You need sessions for this to work"})
+        poem_dict = poems.writeNewPoemForArticle(dbconfig, page_id, task_condition, userdata)
+        if not userdata:
+            raise InvalidAPIUseage("Sessions inactive", "The Wikisonnet API requires that sessions be active to work")
     return jsonify(poem_dict)
 
 @application.route('/api/v2/poems/<int:poem_id>', methods=['GET'])
