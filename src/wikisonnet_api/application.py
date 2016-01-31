@@ -86,7 +86,7 @@ def compose():
     if not session.get('id'):
         session_id = sessions.createSession(dbconfig)
         session['id'] = session_id
-    title = request.form.get("poemTitle", None, type=str)
+    title = request.form.get("poemTitle", None)
     if title is None:
         raise InvalidAPIUsage("No article title provided", "You must provide a Wikipedia article title to get a poem")
     twitterHandle = request.form.get("twitterHandle", None, type=str)
