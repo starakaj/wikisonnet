@@ -120,7 +120,8 @@ def lookup(poem_id):
     if not session.get('id'):
         session_id = sessions.createSession(dbconfig)
         session['id'] = session_id
-    poem_dict = poems.getSpecificPoem(dbconfig, poem_id, session['id'])
+    sortby = request.args.get('sortby', 'date', type=str)
+    poem_dict = poems.getSpecificPoem(dbconfig, poem_id, session['id'], sortby)
     if poem_dict is not None and poem_dict['complete']:
         if 'id' in session:
             sessions.addPoemToSession(dbconfig, poem_dict['id'], session['id'])

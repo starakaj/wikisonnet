@@ -5,7 +5,34 @@ import tasks
 sort_fields = ["lauds", "date"]
 fields_columns = {"lauds":"laud_count", "date":"created_on"}
 
-def dictFromPoemRow(cursor, poem_row_dict):
+def getNextPoemForPoem(cursor, poem_dict, sortby='date'):
+    query = (
+        """SELECT cached_poems.id as poem_id, name as page_name FROM cached_poems """
+        """INNER JOIN page_names ON cached_poems.page_id = page_names.page_id """
+        """WHERE created_on > %s ORDER BY created_on LIMIT 0,1;"""
+    )
+    values = (poem_dict['created_on'], )
+    cursor.execute(query, values)
+    res = cursor.fetchall()
+    if res:
+        return {"poem_id":res[0]['poem_id'], 'page_name':res[0]['page_name'].decode('utf-8')}
+    return None
+
+def getPreviousPoemForPoem(cursor, poem_dict, sortby='date'):
+    query = (
+        """SELECT cached_poems.id as poem_id, name as page_name FROM cached_poems """
+        """INNER JOIN page_names ON cached_poems.page_id = page_names.page_id """
+        """WHERE created_on < %s ORDER BY created_on DESC LIMIT 0,1;"""
+    )
+    values = (poem_dict['created_on'], )
+    cursor.execute(query, values)
+    res = cursor.fetchall()
+    if res:
+        print res[0]
+        return {"poem_id":res[0]['poem_id'], 'page_name':res[0]['page_name'].decode('utf-8')}
+    return None
+
+def dictFromPoemRow(cursor, poem_row_dict, sortby='date'):
     d = {}
     d['complete'] = poem_row_dict['complete']
     d['created_on'] = poem_row_dict['created_on']
@@ -33,6 +60,14 @@ def dictFromPoemRow(cursor, poem_row_dict):
         line_dict = {r['id']:(r['page_id'], r['line'], r['revision']) for r in res}
         d['lines'] = [{'page_id':line_dict[_id][0], 'text':line_dict[_id][1], 'revision':line_dict[_id][2]} if _id else empty_dict for _id in line_ids]
 
+    ## Get the next and previous poem
+    next_poem = getNextPoemForPoem(cursor, d, sortby)
+    if next_poem:
+        d['next'] = next_poem
+    prev_poem = getPreviousPoemForPoem(cursor, d, sortby)
+    if prev_poem:
+        d['previous'] = prev_poem
+
     return d
 
 def getCachedPoemForArticle(dbconfig, page_id=21, complete=True, session_id=0):
@@ -58,7 +93,7 @@ def getCachedPoemForArticle(dbconfig, page_id=21, complete=True, session_id=0):
     conn.close()
     return retval
 
-def getSpecificPoem(dbconfig, poem_id=181, session_id=0):
+def getSpecificPoem(dbconfig, poem_id=181, session_id=0, sortby='date'):
     conn = mysql.connector.connect(user=dbconfig['user'],
                                     password=dbconfig['password'],
                                     host=dbconfig['host'],
@@ -76,7 +111,7 @@ def getSpecificPoem(dbconfig, poem_id=181, session_id=0):
     res = cursor.fetchall()
     retval = None;
     if res:
-        retval = dictFromPoemRow(cursor, res[0])
+        retval = dictFromPoemRow(cursor, res[0], sortby)
     conn.close()
     return retval
 
