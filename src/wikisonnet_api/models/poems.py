@@ -1,6 +1,7 @@
 import mysql.connector
 import db.dbconnect as dbconnect
 import tasks
+import random
 
 sort_fields = ["lauds", "date"]
 fields_columns = {"lauds":"laud_count", "date":"created_on"}
@@ -174,3 +175,24 @@ def getPoems(dbconfig, offset, limit, session_id=0, options={}):
     poems = [dictFromPoemRow(cursor, row) for row in res]
     conn.close()
     return poems
+
+def getRandomPoem(dbconfig, session_id, options={}):
+    conn = mysql.connector.connect(user=dbconfig['user'],
+                                    password=dbconfig['password'],
+                                    host=dbconfig['host'],
+                                    database=dbconfig['database'])
+    cursor = conn.cursor(dictionary=True)
+    query = """SELECT COUNT(*) as poem_count FROM cached_poems WHERE complete=1"""
+    values = ()
+    if "after" in options:
+        query = query + """ AND created_on >= %s"""
+        values = values + (options['after'], )
+    if "before" in options:
+        query = query + """ AND created_on <= %s"""
+        values = values + (options['before'], )
+    cursor.execute(query, values)
+    res = cursor.fetchall()
+    count = res[0]['poem_count']
+    conn.close()
+    poems = getPoems(dbconfig, random.randint(0, count-1), 1, session_id, options)
+    return poems[0]

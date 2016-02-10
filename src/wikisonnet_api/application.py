@@ -154,6 +154,18 @@ def get_poems():
     prewritten_poems = poems.getPoems(dbconfig, offset, limit, session.get('id', 0), options)
     return jsonify({"poems":prewritten_poems})
 
+@application.route("/api/v2/poems/random", methods=['GET'])
+def get_random_poem():
+    before = request.args.get('before', None, type=str)
+    after = request.args.get('after', None, type=str)
+    options = {}
+    if after:
+        options['after'] = after
+    if before:
+        options['before'] = before
+    random_poem = poems.getRandomPoem(dbconfig, session.get('id', 0), options)
+    return jsonify(random_poem)
+
 @application.route("/api/v2/poems/<int:poem_id>/lauds", methods=["POST", "DELETE"])
 def put_laud(poem_id):
     if not session.get('id'):
