@@ -7,29 +7,50 @@ sort_fields = ["lauds", "date"]
 fields_columns = {"lauds":"laud_count", "date":"created_on"}
 
 def getNextPoemForPoem(cursor, poem_dict, sortby='date'):
-    query = (
-        """SELECT cached_poems.id as poem_id, name as page_name FROM cached_poems """
-        """INNER JOIN page_names ON cached_poems.page_id = page_names.page_id """
-        """WHERE created_on > %s ORDER BY created_on LIMIT 0,1;"""
-    )
-    values = (poem_dict['created_on'], )
+    if sortby == 'date':
+        query = (
+            """SELECT cached_poems.id as poem_id, name as page_name FROM cached_poems """
+            """INNER JOIN page_names ON cached_poems.page_id = page_names.page_id """
+            """WHERE created_on > %s ORDER BY created_on LIMIT 0,1;"""
+        )
+        values = (poem_dict['created_on'], )
+    elif sortby == 'lauds':
+        query = (
+            """SELECT cached_poems.id as poem_id, cached_poems.lauds, name as page_name FROM cached_poems  """
+            """INNER JOIN page_names ON cached_poems.page_id = page_names.page_id """
+            """WHERE NOT cached_poems.id = %s """
+            """AND (lauds > %s OR (lauds=%s AND cached_poems.created_on >= %s)) """
+            """ORDER BY lauds, created_on LIMIT 0,1;"""
+        )
+        values = (poem_dict['id'], poem_dict['lauds'], poem_dict['lauds'], poem_dict['created_on'])
     cursor.execute(query, values)
     res = cursor.fetchall()
     if res:
         return {"poem_id":res[0]['poem_id'], 'page_name':res[0]['page_name'].decode('utf-8')}
+    else:
+        print "No next poem " + str(poem_dict['lauds'])
     return None
 
 def getPreviousPoemForPoem(cursor, poem_dict, sortby='date'):
-    query = (
-        """SELECT cached_poems.id as poem_id, name as page_name FROM cached_poems """
-        """INNER JOIN page_names ON cached_poems.page_id = page_names.page_id """
-        """WHERE created_on < %s ORDER BY created_on DESC LIMIT 0,1;"""
-    )
-    values = (poem_dict['created_on'], )
+    if sortby=='date':
+        query = (
+            """SELECT cached_poems.id as poem_id, name as page_name FROM cached_poems """
+            """INNER JOIN page_names ON cached_poems.page_id = page_names.page_id """
+            """WHERE created_on < %s ORDER BY created_on DESC LIMIT 0,1;"""
+        )
+        values = (poem_dict['created_on'], )
+    elif sortby == 'lauds':
+        query = (
+            """SELECT cached_poems.id as poem_id, cached_poems.lauds, name as page_name FROM cached_poems  """
+            """INNER JOIN page_names ON cached_poems.page_id = page_names.page_id """
+            """WHERE NOT cached_poems.id = %s """
+            """AND (lauds < %s OR (lauds=%s AND cached_poems.created_on <= %s)) """
+            """ORDER BY lauds DESC, created_on DESC LIMIT 0,1;"""
+        )
+        values = (poem_dict['id'], poem_dict['lauds'], poem_dict['lauds'], poem_dict['created_on'])
     cursor.execute(query, values)
     res = cursor.fetchall()
     if res:
-        print res[0]
         return {"poem_id":res[0]['poem_id'], 'page_name':res[0]['page_name'].decode('utf-8')}
     return None
 
@@ -40,7 +61,7 @@ def dictFromPoemRow(cursor, poem_row_dict, sortby='date'):
     d['starting_page'] = poem_row_dict['page_id']
     d['id'] = poem_row_dict['id']
     d['title'] = poem_row_dict['name'].decode('utf-8').replace("_", " ")
-    d['lauds'] = poem_row_dict['laud_count']
+    d['lauds'] = poem_row_dict['lauds']
     d['lauded_by_session'] = poem_row_dict['session']
 
     ## Get the text for the line ID's
@@ -77,13 +98,12 @@ def getCachedPoemForArticle(dbconfig, page_id=21, complete=True, session_id=0):
                                     host=dbconfig['host'],
                                     database=dbconfig['database'])
     cursor = conn.cursor(dictionary=True)
-    query = """SELECT cached_poems.*, page_names.name, COUNT(lauds.poem_id) as laud_count, session_lauds.session FROM cached_poems
+    query = """SELECT cached_poems.*, page_names.name, session_lauds.session FROM cached_poems
                 LEFT OUTER JOIN sessions_poems ON cached_poems.id = sessions_poems.poem_id
                 JOIN page_names ON page_names.page_id = cached_poems.page_id
-                LEFT JOIN lauds ON lauds.poem_id = cached_poems.id
                 LEFT OUTER JOIN lauds AS session_lauds ON lauds.poem_id = cached_poems.id AND lauds.session = %s
                 WHERE cached_poems.page_id=%s AND complete=%s AND (session_id!=%s OR session_id IS NULL)
-                GROUP BY lauds.poem_id, cached_poems.id, page_names.name, session_lauds.session
+                GROUP BY cached_poems.id, page_names.name, session_lauds.session
                 ORDER BY RAND() LIMIT 1;"""
     values = (session_id, page_id, complete, session_id)
     cursor.execute(query, values)
@@ -100,12 +120,11 @@ def getSpecificPoem(dbconfig, poem_id=181, session_id=0, sortby='date'):
                                     host=dbconfig['host'],
                                     database=dbconfig['database'])
     cursor = conn.cursor(dictionary=True)
-    query = """SELECT cached_poems.*, page_names.name, COUNT(lauds.poem_id) as laud_count, session_lauds.session FROM cached_poems
+    query = """SELECT cached_poems.*, page_names.name, session_lauds.session FROM cached_poems
                 JOIN page_names on page_names.page_id = cached_poems.page_id
-                LEFT JOIN lauds ON lauds.poem_id = cached_poems.id
-                LEFT OUTER JOIN lauds AS session_lauds ON lauds.poem_id = cached_poems.id AND lauds.session = %s
+                LEFT OUTER JOIN lauds AS session_lauds ON session_lauds.poem_id = cached_poems.id AND session_lauds.session = %s
                 WHERE cached_poems.id=%s
-                GROUP BY lauds.poem_id, cached_poems.id, page_names.name, session_lauds.session
+                GROUP BY cached_poems.id, page_names.name, session_lauds.session
                 LIMIT 1;"""
     values = (session_id, poem_id)
     cursor.execute(query, values)
@@ -150,9 +169,8 @@ def getPoems(dbconfig, offset, limit, session_id=0, options={}):
                                     host=dbconfig['host'],
                                     database=dbconfig['database'])
     cursor = conn.cursor(dictionary=True)
-    query = """SELECT cached_poems.*, page_names.name, COUNT(lauds.poem_id) as laud_count, session_lauds.session FROM cached_poems
+    query = """SELECT cached_poems.*, page_names.name, session_lauds.session FROM cached_poems
                 JOIN page_names on page_names.page_id = cached_poems.page_id
-                LEFT JOIN lauds ON lauds.poem_id = cached_poems.id
                 LEFT OUTER JOIN lauds AS session_lauds ON lauds.poem_id = cached_poems.id AND lauds.session = %s
                 WHERE complete=1"""
     values = (session_id, )
@@ -162,7 +180,7 @@ def getPoems(dbconfig, offset, limit, session_id=0, options={}):
     if "before" in options:
         query = query + """ AND created_on <= %s"""
         values = values + (options['before'], )
-    query = query + """ GROUP BY lauds.poem_id, cached_poems.id, page_names.name, session_lauds.session"""
+    query = query + """ GROUP BY cached_poems.id, page_names.name, session_lauds.session"""
     if "sortby" in options and options['sortby'] in sort_fields:
         query = query + """ ORDER BY {} DESC LIMIT %s,%s;""".format(fields_columns[options['sortby']])
     else:
@@ -172,7 +190,7 @@ def getPoems(dbconfig, offset, limit, session_id=0, options={}):
     values = values + (offset, limit)
     cursor.execute(query, values)
     res = cursor.fetchall()
-    poems = [dictFromPoemRow(cursor, row) for row in res]
+    poems = [dictFromPoemRow(cursor, row, options.get('sortby', 'date')) for row in res]
     conn.close()
     return poems
 

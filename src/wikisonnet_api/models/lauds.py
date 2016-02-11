@@ -39,11 +39,11 @@ def laudCountForPoem(dbconfig, poem_id, session):
                                     host=dbconfig['host'],
                                     database=dbconfig['database'])
     cursor = conn.cursor(dictionary=True)
-    query = """SELECT COUNT(*) FROM lauds WHERE poem_id=%s;"""
+    query = """SELECT lauds FROM cached_poems WHERE id=%s;"""
     values = (poem_id, )
     cursor.execute(query, values)
     res = cursor.fetchall()
-    laud_count = res[0]['COUNT(*)']
+    laud_count = res[0]['lauds']
     query = """SELECT COUNT(*) FROM lauds WHERE poem_id=%s AND session=%s;"""
     values = (poem_id, session)
     cursor.execute(query, values)
