@@ -10,6 +10,3 @@ def textForPageWithID(xml_filename, pageid):
         if extractor.pageIDForCurrentPage() > pageid:
             break
     return text
-
-def laudRandomly(host, laudcount):
-    import db.

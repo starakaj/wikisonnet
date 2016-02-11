@@ -27,8 +27,6 @@ def getNextPoemForPoem(cursor, poem_dict, sortby='date'):
     res = cursor.fetchall()
     if res:
         return {"poem_id":res[0]['poem_id'], 'page_name':res[0]['page_name'].decode('utf-8')}
-    else:
-        print "No next poem " + str(poem_dict['lauds'])
     return None
 
 def getPreviousPoemForPoem(cursor, poem_dict, sortby='date'):
@@ -101,7 +99,7 @@ def getCachedPoemForArticle(dbconfig, page_id=21, complete=True, session_id=0):
     query = """SELECT cached_poems.*, page_names.name, session_lauds.session FROM cached_poems
                 LEFT OUTER JOIN sessions_poems ON cached_poems.id = sessions_poems.poem_id
                 JOIN page_names ON page_names.page_id = cached_poems.page_id
-                LEFT OUTER JOIN lauds AS session_lauds ON lauds.poem_id = cached_poems.id AND lauds.session = %s
+                LEFT OUTER JOIN lauds AS session_lauds ON session_lauds.poem_id = cached_poems.id AND session_lauds.session = %s
                 WHERE cached_poems.page_id=%s AND complete=%s AND (session_id!=%s OR session_id IS NULL)
                 GROUP BY cached_poems.id, page_names.name, session_lauds.session
                 ORDER BY RAND() LIMIT 1;"""
@@ -171,7 +169,7 @@ def getPoems(dbconfig, offset, limit, session_id=0, options={}):
     cursor = conn.cursor(dictionary=True)
     query = """SELECT cached_poems.*, page_names.name, session_lauds.session FROM cached_poems
                 JOIN page_names on page_names.page_id = cached_poems.page_id
-                LEFT OUTER JOIN lauds AS session_lauds ON lauds.poem_id = cached_poems.id AND lauds.session = %s
+                LEFT OUTER JOIN lauds AS session_lauds ON session_lauds.poem_id = cached_poems.id AND session_lauds.session = %s
                 WHERE complete=1"""
     values = (session_id, )
     if "after" in options:
