@@ -45,6 +45,11 @@ def start_server():
     shutil.copytree(srcdir + "util", destdir + "util")
     shutil.copytree(srcdir + "wikibard", destdir + "wikibard")
 
+    # Start newrelic
+    import newrelic.agent
+    newrelic_path = "/".join(os.path.realpath(__file__).split("/")[:-1]) + "/wikisonnet_api/newrelic.ini"
+    newrelic.agent.initialize(newrelic_path)
+
     # Run the server
     from wikisonnet_api import application
     application.run()
