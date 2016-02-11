@@ -144,6 +144,7 @@ def get_poems():
     sortby  = request.args.get('sortby', None, type=str)
     before = request.args.get('before', None, type=str)
     after = request.args.get('after', None, type=str)
+    featured = request.args.get('featured', None, type=int)
     options = {}
     if sortby:
         options['sortby'] = sortby
@@ -151,6 +152,8 @@ def get_poems():
         options['after'] = after
     if before:
         options['before'] = before
+    if featured is not None:
+        options['featured'] = False if featured == 0 else True
     prewritten_poems = poems.getPoems(dbconfig, offset, limit, session.get('id', 0), options)
     return jsonify({"poems":prewritten_poems})
 
@@ -158,11 +161,14 @@ def get_poems():
 def get_random_poem():
     before = request.args.get('before', None, type=str)
     after = request.args.get('after', None, type=str)
+    featured = request.args.get('featured', None, type=int)
     options = {}
     if after:
         options['after'] = after
     if before:
         options['before'] = before
+    if featured is not None:
+        options['featured'] = False if featured == 0 else True
     random_poem = poems.getRandomPoem(dbconfig, session.get('id', 0), options)
     return jsonify(random_poem)
 
