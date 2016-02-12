@@ -187,6 +187,10 @@ def put_laud(poem_id):
     else:
         return jsonify({"success":0})
 
+@application.route("/api/v2/ping", methods=["GET"])
+def ping():
+    return jsonify({"ping":"Shall I compare thee to a 200 OK?"})
+
 @application.errorhandler(InvalidAPIUsage)
 def handle_invalid_usage(err):
     response = jsonify(err.to_dict())
