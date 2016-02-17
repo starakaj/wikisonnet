@@ -91,19 +91,30 @@ def dictFromPoemRow(cursor, poem_row_dict, sortby='date'):
     return d
 
 def getCachedPoemForArticle(dbconfig, page_id=21, complete=True, session_id=0):
+    print(session_id)
     conn = mysql.connector.connect(user=dbconfig['user'],
                                     password=dbconfig['password'],
                                     host=dbconfig['host'],
                                     database=dbconfig['database'])
     cursor = conn.cursor(dictionary=True)
-    query = """SELECT cached_poems.*, page_names.name, session_lauds.session FROM cached_poems
-                LEFT OUTER JOIN sessions_poems ON cached_poems.id = sessions_poems.poem_id
-                JOIN page_names ON page_names.page_id = cached_poems.page_id
-                LEFT OUTER JOIN lauds AS session_lauds ON session_lauds.poem_id = cached_poems.id AND session_lauds.session = %s
-                WHERE cached_poems.page_id=%s AND complete=%s AND (session_id!=%s OR session_id IS NULL)
-                GROUP BY cached_poems.id, page_names.name, session_lauds.session
-                ORDER BY RAND() LIMIT 1;"""
-    values = (session_id, page_id, complete, session_id)
+    # why is lauds being joined here?
+    # query = """SELECT cached_poems.*, page_names.name, session_lauds.session FROM cached_poems
+    #             LEFT OUTER JOIN sessions_poems ON cached_poems.id = sessions_poems.poem_id
+    #             JOIN page_names ON page_names.page_id = cached_poems.page_id
+    #             LEFT OUTER JOIN lauds AS session_lauds ON session_lauds.poem_id = cached_poems.id AND session_lauds.session = %s
+    #             WHERE cached_poems.page_id=%s AND complete=%s AND (session_id!=%s OR session_id IS NULL)
+    #             GROUP BY cached_poems.id, page_names.name, session_lauds.session
+    #             ORDER BY RAND() LIMIT 1;"""
+    query="""SELECT cached_poems.*, page_names.name, null as session FROM cached_poems
+            JOIN page_names on page_names.page_id = cached_poems.page_id
+            WHERE cached_poems.id NOT IN 
+                (SELECT cached_poems.id FROM cached_poems 
+                LEFT OUTER JOIN sessions_poems ON cached_poems.id = sessions_poems.poem_id 
+                WHERE cached_poems.page_id=%s AND session_id=%s AND complete=%s) 
+            AND cached_poems.page_id=%s AND complete=%s
+            GROUP BY cached_poems.id, page_names.name
+            ORDER BY RAND() LIMIT 1;"""
+    values = (page_id, session_id, complete, page_id, complete)
     cursor.execute(query, values)
     res = cursor.fetchall()
     retval = None;

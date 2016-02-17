@@ -124,6 +124,8 @@ def lookup(poem_id):
     poem_dict = poems.getSpecificPoem(dbconfig, poem_id, session['id'], sortby)
     if poem_dict is not None and poem_dict['complete']:
         if 'id' in session:
+            print(session.get('id'))
+            print("adding poem to session in get")
             sessions.addPoemToSession(dbconfig, poem_dict['id'], session['id'])
         print_poem(poem_dict['starting_page'], poem_dict)
     elif poem_dict is None:
