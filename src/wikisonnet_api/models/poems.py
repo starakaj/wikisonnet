@@ -52,6 +52,14 @@ def getPreviousPoemForPoem(cursor, poem_dict, sortby='date'):
         return {"poem_id":res[0]['poem_id'], 'page_name':res[0]['page_name'].decode('utf-8')}
     return None
 
+def getQueueLengthForPoemID(cursor, poem_id):
+    query = """SELECT COUNT(*) FROM cached_poems WHERE complete=0 AND id<%s"""
+    values = (poem_id, )
+    cursor.execute(query, values)
+    res = cursor.fetchall()
+    queue_length = res[0]['COUNT(*)']
+    return queue_length
+
 def dictFromPoemRow(cursor, poem_row_dict, sortby='date'):
     d = {}
     d['complete'] = poem_row_dict['complete']
@@ -79,6 +87,10 @@ def dictFromPoemRow(cursor, poem_row_dict, sortby='date'):
         res = cursor.fetchall()
         line_dict = {r['id']:(r['page_id'], r['line'], r['revision']) for r in res}
         d['lines'] = [{'page_id':line_dict[_id][0], 'text':line_dict[_id][1], 'revision':line_dict[_id][2]} if _id else empty_dict for _id in line_ids]
+
+    ## If the poem is incomplete, get the number of poems ahead of this poem in the queue
+    if d['complete'] is 0:
+        d['queue_length'] = getQueueLengthForPoemID(cursor, d['id'])
 
     ## Get the next and previous poem
     next_poem = getNextPoemForPoem(cursor, d, sortby)
@@ -139,7 +151,7 @@ def writeNewPoemForArticle(dbconfig, pageID, task_condition, userdata):
                                         password=dbconfig['password'],
                                         host=dbconfig['host'],
                                         database=dbconfig['database'])
-    cursor = write_conn.cursor()
+    cursor = write_conn.cursor(dictionary=True)
     query = """INSERT INTO cached_poems (page_id) VALUES (%s);"""
     values = (pageID,)
     cursor.execute(query, values)
@@ -147,14 +159,15 @@ def writeNewPoemForArticle(dbconfig, pageID, task_condition, userdata):
     query = """SELECT LAST_INSERT_ID();"""
     cursor.execute(query)
     res = cursor.fetchall()
-    poem_id = res[0][0]
-    write_conn.close()
+    poem_id = res[0]['LAST_INSERT_ID()']
 
     ## Create the return dictionary
     d = {}
     d['complete'] = 0
     d['starting_page'] = pageID
     d['id'] = poem_id
+    d['queue_length'] = getQueueLengthForPoemID(cursor, poem_id)
+    write_conn.close()
 
     ## Add the poem to the task queue database
     tasks.enqueuePoemTaskForPageID(dbconfig, pageID, poem_id, task_condition, userdata)
