@@ -63,6 +63,22 @@ except:
 task_process = None
 task_condition = None
 
+def createOptions():
+    sortby  = request.args.get('sortby', None, type=str)
+    before = request.args.get('before', None, type=str)
+    after = request.args.get('after', None, type=str)
+    featured = request.args.get('featured', None, type=int)
+    options = {}
+    if sortby:
+        options['sortby'] = sortby
+    if after:
+        options['after'] = after
+    if before:
+        options['before'] = before
+    if featured is not None:
+        options['featured'] = False if featured == 0 else True
+    return options
+
 @application.route('/')
 def welcome():
     theme = application.config['THEME']
@@ -120,8 +136,8 @@ def lookup(poem_id):
     if not session.get('id'):
         session_id = sessions.createSession(dbconfig)
         session['id'] = session_id
-    sortby = request.args.get('sortby', 'date', type=str)
-    poem_dict = poems.getSpecificPoem(dbconfig, poem_id, session['id'], sortby)
+    options = createOptions()
+    poem_dict = poems.getSpecificPoem(dbconfig, poem_id, session['id'], options)
     if poem_dict is not None and poem_dict['complete']:
         if 'id' in session:
             print(session.get('id'))
@@ -143,34 +159,13 @@ def getTasks():
 def get_poems():
     offset = request.args.get('offset', 0, type=int)
     limit = request.args.get('limit', 0, type=int)
-    sortby  = request.args.get('sortby', None, type=str)
-    before = request.args.get('before', None, type=str)
-    after = request.args.get('after', None, type=str)
-    featured = request.args.get('featured', None, type=int)
-    options = {}
-    if sortby:
-        options['sortby'] = sortby
-    if after:
-        options['after'] = after
-    if before:
-        options['before'] = before
-    if featured is not None:
-        options['featured'] = False if featured == 0 else True
+    options = createOptions()
     prewritten_poems = poems.getPoems(dbconfig, offset, limit, session.get('id', 0), options)
     return jsonify({"poems":prewritten_poems})
 
 @application.route("/api/v2/poems/random", methods=['GET'])
 def get_random_poem():
-    before = request.args.get('before', None, type=str)
-    after = request.args.get('after', None, type=str)
-    featured = request.args.get('featured', None, type=int)
-    options = {}
-    if after:
-        options['after'] = after
-    if before:
-        options['before'] = before
-    if featured is not None:
-        options['featured'] = False if featured == 0 else True
+    options = createOptions()
     random_poem = poems.getRandomPoem(dbconfig, session.get('id', 0), options)
     return jsonify(random_poem)
 
