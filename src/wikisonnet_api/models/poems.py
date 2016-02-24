@@ -79,6 +79,7 @@ def getQueueLengthForPoemID(cursor, poem_id):
 def dictFromPoemRow(cursor, poem_row_dict, options={}):
     d = {}
     d['complete'] = poem_row_dict['complete']
+    d['featured'] = poem_row_dict['featured']
     d['created_on'] = poem_row_dict['created_on']
     d['starting_page'] = poem_row_dict['page_id']
     d['id'] = poem_row_dict['id']
