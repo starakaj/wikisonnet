@@ -145,7 +145,7 @@ def lookup(poem_id):
             sessions.addPoemToSession(dbconfig, poem_dict['id'], session['id'])
         print_poem(poem_dict['starting_page'], poem_dict)
     elif poem_dict is None:
-        poem_dict = {}
+        return not_found()
     return jsonify(poem_dict)
 
 @application.route("/api/v2/tasks", methods=['GET'])
@@ -193,6 +193,10 @@ def handle_invalid_usage(err):
     response = jsonify(err.to_dict())
     response.status_code = err.status_code
     return response
+
+@application.errorhandler(404)
+def not_found(error=None):
+    return flask.jsonify(error=404, text='Not Found: ' + request.url), 404
 
 def print_poem(page_id, poem_dict):
     if print_to_dotmatrix:
